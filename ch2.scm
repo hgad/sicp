@@ -810,18 +810,51 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ex2.42 (incomplete)                                                        ;;
+;; ex2.42                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (queens board-size)
+  (define (make-pos row col) (list row col))
+  (define (row position) (car position))
+  (define (col position) (cadr position))
+  (define (rowEqual? pos1 pos2) (= (row pos1) (row pos2)))
+  (define (colEqual? pos1 pos2) (= (col pos1) (col pos2)))
+  (define (posEqual? pos1 pos2) (and (rowEqual? pos1 pos2)
+                                     (colEqual? pos1 pos2)))
   (define empty-board '())
 
-  (define (safe? col positions)
-    (accumulate (lambda (x y) (and x y)) #t
-      (map (lambda (pos) (not (= (cadr pos) col))) positions)))
+
+  (define (diagonals pos)
+    (let* ((curr-row (row pos))
+           (curr-col (col pos))
+           (diffs (map (lambda (x) (- x curr-row))
+                       (enumerate-interval 1 board-size))))
+      (filter (lambda (x) (and (not (posEqual? x pos))
+                               (<= (row x) board-size)
+                               (<= (col x) board-size)))
+              (flatmap
+                (lambda (diff)
+                  (list (make-pos (+ curr-row diff) (+ curr-col diff))
+                        (make-pos (+ curr-row diff) (- curr-col diff))))
+                diffs))))
+
+  (define (safe? column positions)
+    (let* ((curr-position
+             (car (filter (lambda (pos) (colEqual? pos (make-pos 1 column)))
+                          positions)))
+           (prev-positions
+             (remove (lambda (pos) (posEqual? pos curr-position)) positions))
+           (prev-diagonals (flatmap diagonals prev-positions)))
+
+      (define (positionsGood? pred? l)
+        (accumulate (lambda (x y) (and x y)) #t
+          (map (lambda (pos) (not (pred? pos curr-position))) l)))
+
+      (and (positionsGood? rowEqual? prev-positions)
+           (positionsGood? posEqual? prev-diagonals))))
 
   (define (adjoin-position new-row k rest-of-queens)
-    (cons (cons new-row (list k)) rest-of-queens))
+    (cons (make-pos new-row k) rest-of-queens))
 
   (define (queen-cols k)
     (if (= k 0)
@@ -835,5 +868,253 @@
             (queen-cols (- k 1))))))
   (queen-cols board-size))
 
-(queens 8)
+; (queens 8)
+; (((4 8) (2 7) (7 6) (3 5) (6 4) (8 3) (5 2) (1 1))
+;  ((5 8) (2 7) (4 6) (7 5) (3 4) (8 3) (6 2) (1 1))
+;  ((3 8) (5 7) (2 6) (8 5) (6 4) (4 3) (7 2) (1 1))
+;  ((3 8) (6 7) (4 6) (2 5) (8 4) (5 3) (7 2) (1 1))
+;  ((5 8) (7 7) (1 6) (3 5) (8 4) (6 3) (4 2) (2 1))
+;  ((4 8) (6 7) (8 6) (3 5) (1 4) (7 3) (5 2) (2 1))
+;  ((3 8) (6 7) (8 6) (1 5) (4 4) (7 3) (5 2) (2 1))
+;  ((5 8) (3 7) (8 6) (4 5) (7 4) (1 3) (6 2) (2 1))
+;  ((5 8) (7 7) (4 6) (1 5) (3 4) (8 3) (6 2) (2 1))
+;  ((4 8) (1 7) (5 6) (8 5) (6 4) (3 3) (7 2) (2 1))
+;  ((3 8) (6 7) (4 6) (1 5) (8 4) (5 3) (7 2) (2 1))
+;  ((4 8) (7 7) (5 6) (3 5) (1 4) (6 3) (8 2) (2 1))
+;  ((6 8) (4 7) (2 6) (8 5) (5 4) (7 3) (1 2) (3 1))
+;  ((6 8) (4 7) (7 6) (1 5) (8 4) (2 3) (5 2) (3 1))
+;  ((1 8) (7 7) (4 6) (6 5) (8 4) (2 3) (5 2) (3 1))
+;  ((6 8) (8 7) (2 6) (4 5) (1 4) (7 3) (5 2) (3 1))
+;  ((6 8) (2 7) (7 6) (1 5) (4 4) (8 3) (5 2) (3 1))
+;  ((4 8) (7 7) (1 6) (8 5) (5 4) (2 3) (6 2) (3 1))
+;  ((5 8) (8 7) (4 6) (1 5) (7 4) (2 3) (6 2) (3 1))
+;  ((4 8) (8 7) (1 6) (5 5) (7 4) (2 3) (6 2) (3 1))
+;  ((2 8) (7 7) (5 6) (8 5) (1 4) (4 3) (6 2) (3 1))
+;  ((1 8) (7 7) (5 6) (8 5) (2 4) (4 3) (6 2) (3 1))
+;  ((2 8) (5 7) (7 6) (4 5) (1 4) (8 3) (6 2) (3 1))
+;  ((4 8) (2 7) (7 6) (5 5) (1 4) (8 3) (6 2) (3 1))
+;  ((5 8) (7 7) (1 6) (4 5) (2 4) (8 3) (6 2) (3 1))
+;  ((6 8) (4 7) (1 6) (5 5) (8 4) (2 3) (7 2) (3 1))
+;  ((5 8) (1 7) (4 6) (6 5) (8 4) (2 3) (7 2) (3 1))
+;  ((5 8) (2 7) (6 6) (1 5) (7 4) (4 3) (8 2) (3 1))
+;  ((6 8) (3 7) (7 6) (2 5) (8 4) (5 3) (1 2) (4 1))
+;  ((2 8) (7 7) (3 6) (6 5) (8 4) (5 3) (1 2) (4 1))
+;  ((7 8) (3 7) (1 6) (6 5) (8 4) (5 3) (2 2) (4 1))
+;  ((5 8) (1 7) (8 6) (6 5) (3 4) (7 3) (2 2) (4 1))
+;  ((1 8) (5 7) (8 6) (6 5) (3 4) (7 3) (2 2) (4 1))
+;  ((3 8) (6 7) (8 6) (1 5) (5 4) (7 3) (2 2) (4 1))
+;  ((6 8) (3 7) (1 6) (7 5) (5 4) (8 3) (2 2) (4 1))
+;  ((7 8) (5 7) (3 6) (1 5) (6 4) (8 3) (2 2) (4 1))
+;  ((7 8) (3 7) (8 6) (2 5) (5 4) (1 3) (6 2) (4 1))
+;  ((5 8) (3 7) (1 6) (7 5) (2 4) (8 3) (6 2) (4 1))
+;  ((2 8) (5 7) (7 6) (1 5) (3 4) (8 3) (6 2) (4 1))
+;  ((3 8) (6 7) (2 6) (5 5) (8 4) (1 3) (7 2) (4 1))
+;  ((6 8) (1 7) (5 6) (2 5) (8 4) (3 3) (7 2) (4 1))
+;  ((8 8) (3 7) (1 6) (6 5) (2 4) (5 3) (7 2) (4 1))
+;  ((2 8) (8 7) (6 6) (1 5) (3 4) (5 3) (7 2) (4 1))
+;  ((5 8) (7 7) (2 6) (6 5) (3 4) (1 3) (8 2) (4 1))
+;  ((3 8) (6 7) (2 6) (7 5) (5 4) (1 3) (8 2) (4 1))
+;  ((6 8) (2 7) (7 6) (1 5) (3 4) (5 3) (8 2) (4 1))
+;  ((3 8) (7 7) (2 6) (8 5) (6 4) (4 3) (1 2) (5 1))
+;  ((6 8) (3 7) (7 6) (2 5) (4 4) (8 3) (1 2) (5 1))
+;  ((4 8) (2 7) (7 6) (3 5) (6 4) (8 3) (1 2) (5 1))
+;  ((7 8) (1 7) (3 6) (8 5) (6 4) (4 3) (2 2) (5 1))
+;  ((1 8) (6 7) (8 6) (3 5) (7 4) (4 3) (2 2) (5 1))
+;  ((3 8) (8 7) (4 6) (7 5) (1 4) (6 3) (2 2) (5 1))
+;  ((6 8) (3 7) (7 6) (4 5) (1 4) (8 3) (2 2) (5 1))
+;  ((7 8) (4 7) (2 6) (8 5) (6 4) (1 3) (3 2) (5 1))
+;  ((4 8) (6 7) (8 6) (2 5) (7 4) (1 3) (3 2) (5 1))
+;  ((2 8) (6 7) (1 6) (7 5) (4 4) (8 3) (3 2) (5 1))
+;  ((2 8) (4 7) (6 6) (8 5) (3 4) (1 3) (7 2) (5 1))
+;  ((3 8) (6 7) (8 6) (2 5) (4 4) (1 3) (7 2) (5 1))
+;  ((6 8) (3 7) (1 6) (8 5) (4 4) (2 3) (7 2) (5 1))
+;  ((8 8) (4 7) (1 6) (3 5) (6 4) (2 3) (7 2) (5 1))
+;  ((4 8) (8 7) (1 6) (3 5) (6 4) (2 3) (7 2) (5 1))
+;  ((2 8) (6 7) (8 6) (3 5) (1 4) (4 3) (7 2) (5 1))
+;  ((7 8) (2 7) (6 6) (3 5) (1 4) (4 3) (8 2) (5 1))
+;  ((3 8) (6 7) (2 6) (7 5) (1 4) (4 3) (8 2) (5 1))
+;  ((4 8) (7 7) (3 6) (8 5) (2 4) (5 3) (1 2) (6 1))
+;  ((4 8) (8 7) (5 6) (3 5) (1 4) (7 3) (2 2) (6 1))
+;  ((3 8) (5 7) (8 6) (4 5) (1 4) (7 3) (2 2) (6 1))
+;  ((4 8) (2 7) (8 6) (5 5) (7 4) (1 3) (3 2) (6 1))
+;  ((5 8) (7 7) (2 6) (4 5) (8 4) (1 3) (3 2) (6 1))
+;  ((7 8) (4 7) (2 6) (5 5) (8 4) (1 3) (3 2) (6 1))
+;  ((8 8) (2 7) (4 6) (1 5) (7 4) (5 3) (3 2) (6 1))
+;  ((7 8) (2 7) (4 6) (1 5) (8 4) (5 3) (3 2) (6 1))
+;  ((5 8) (1 7) (8 6) (4 5) (2 4) (7 3) (3 2) (6 1))
+;  ((4 8) (1 7) (5 6) (8 5) (2 4) (7 3) (3 2) (6 1))
+;  ((5 8) (2 7) (8 6) (1 5) (4 4) (7 3) (3 2) (6 1))
+;  ((3 8) (7 7) (2 6) (8 5) (5 4) (1 3) (4 2) (6 1))
+;  ((3 8) (1 7) (7 6) (5 5) (8 4) (2 3) (4 2) (6 1))
+;  ((8 8) (2 7) (5 6) (3 5) (1 4) (7 3) (4 2) (6 1))
+;  ((3 8) (5 7) (2 6) (8 5) (1 4) (7 3) (4 2) (6 1))
+;  ((3 8) (5 7) (7 6) (1 5) (4 4) (2 3) (8 2) (6 1))
+;  ((5 8) (2 7) (4 6) (6 5) (8 4) (3 3) (1 2) (7 1))
+;  ((6 8) (3 7) (5 6) (8 5) (1 4) (4 3) (2 2) (7 1))
+;  ((5 8) (8 7) (4 6) (1 5) (3 4) (6 3) (2 2) (7 1))
+;  ((4 8) (2 7) (5 6) (8 5) (6 4) (1 3) (3 2) (7 1))
+;  ((4 8) (6 7) (1 6) (5 5) (2 4) (8 3) (3 2) (7 1))
+;  ((6 8) (3 7) (1 6) (8 5) (5 4) (2 3) (4 2) (7 1))
+;  ((5 8) (3 7) (1 6) (6 5) (8 4) (2 3) (4 2) (7 1))
+;  ((4 8) (2 7) (8 6) (6 5) (1 4) (3 3) (5 2) (7 1))
+;  ((6 8) (3 7) (5 6) (7 5) (1 4) (4 3) (2 2) (8 1))
+;  ((6 8) (4 7) (7 6) (1 5) (3 4) (5 3) (2 2) (8 1))
+;  ((4 8) (7 7) (5 6) (2 5) (6 4) (1 3) (3 2) (8 1))
+;  ((5 8) (7 7) (2 6) (6 5) (3 4) (1 3) (4 2) (8 1)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.43 (hesitant about this answer)                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Switching the lambdas causes the recursive call to queen-cols to be called
+; board-size * k times as opposed to k times before switching, so assuming
+; ex2.42 solves the problem in T time, switching lambdas will solve it in
+; board-size * T.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.44                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (up-split painter n)
+  (if (= n 0)
+      painter
+      (let ((smaller (up-split painter (- n 1))))
+        (below painter (beside smaller smaller)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.45                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (split combiner1 combiner2)
+  (lambda (painter n)
+    (if (= n 0)
+        painter
+        (let ((smaller (split painter (- n 1))))
+          (combiner1 painter (combiner2 smaller smaller))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.46                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-vect x y) (cons x y))
+(define (xcor-vect v) (car v))
+(define (ycor-vect v) (cdr v))
+
+(define (add-vect v1 v2)
+  (make-vect (+ (xcor-vect v1) (xcor-vect v2))
+             (+ (ycor-vect v1) (ycor-vect v2))))
+
+(define (sub-vect v1 v2)
+  (make-vect (- (xcor-vect v1) (xcor-vect v2))
+             (- (ycor-vect v1) (ycor-vect v2))))
+
+(define (scale-vect s v)
+  (make-vect (* s (xcor-vect v))
+             (* s (ycor-vect v))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.47                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-frame origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (origin-frame f) (car f))
+(define (edge1-frame f) (cadr f))
+(define (edge2-frame f) (caddr f))
+
+(define (make-frame origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+
+(define (origin-frame f) (car f))
+(define (edge1-frame f) (cadr f))
+(define (edge2-frame f) (cddr f))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.48                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-segment v1 v2) (cons v1 v2))
+(define (start-segment s) (car s))
+(define (end-segment s) (cdr s))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.49                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (frame-coord-map frame)
+  (lambda (v)
+    (add-vect
+      (origin-frame frame)
+      (add-vect (scale-vect (xcor-vect v)
+                            (edge1-frame frame))
+                (scale-vect (ycor-vect v)
+                            (edge2-frame frame))))))
+
+(define (segments->painter segment-list)
+  (lambda (frame)
+    (for-each
+      (lambda (segment)
+        (draw-line
+          ((frame-coord-map frame) (start-segment segment))
+          ((frame-coord-map frame) (end-segment segment))))
+      segment-list)))
+
+; Part (a):
+
+(define (outline f)
+  (let* ((ll (origin-frame f))
+         (lr (add-vect ll (edge1-frame f)))
+         (ul (add-vect ll (edge2-frame f)))
+         (ur (add-vect lr (edge2-frame f))))
+  (segments->painter
+    (list (make-segment ll lr)
+          (make-segment ll ul)
+          (make-segment lr ur)
+          (make-segment ul ur))))
+
+; Part (b):
+
+(define (outline f)
+  (let* ((ll (origin-frame f))
+         (lr (add-vect ll (edge1-frame f)))
+         (ul (add-vect ll (edge2-frame f)))
+         (ur (add-vect lr (edge2-frame f))))
+  (segments->painter
+    (list (make-segment ll ur)
+          (make-segment lr ul))))
+
+; Part (c):
+
+(define (outline f)
+  (let* ((ll (origin-frame f))
+         (lr (add-vect ll (edge1-frame f)))
+         (ul (add-vect ll (edge2-frame f)))
+         (ur (add-vect lr (edge2-frame f)))
+         (lm (scale-vect 0.5 (add-vect ll ul)))
+         (rm (scale-vect 0.5 (add-vect lr ur)))
+         (bm (scale-vect 0.5 (add-vect ll lr)))
+         (tm (scale-vect 0.5 (add-vect ul ur))))
+  (segments->painter
+    (list (make-segment lm um)
+          (make-segment um rm)
+          (make-segment rm bm)
+          (make-segment bm lm))))
+
+; Part (d):
+;
+; I'll skip this one!
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.50                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
