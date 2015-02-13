@@ -1074,11 +1074,11 @@
          (lr (add-vect ll (edge1-frame f)))
          (ul (add-vect ll (edge2-frame f)))
          (ur (add-vect lr (edge2-frame f))))
-  (segments->painter
-    (list (make-segment ll lr)
-          (make-segment ll ul)
-          (make-segment lr ur)
-          (make-segment ul ur))))
+    (segments->painter
+      (list (make-segment ll lr)
+            (make-segment ll ul)
+            (make-segment lr ur)
+            (make-segment ul ur)))))
 
 ; Part (b):
 
@@ -1087,9 +1087,9 @@
          (lr (add-vect ll (edge1-frame f)))
          (ul (add-vect ll (edge2-frame f)))
          (ur (add-vect lr (edge2-frame f))))
-  (segments->painter
-    (list (make-segment ll ur)
-          (make-segment lr ul))))
+    (segments->painter
+      (list (make-segment ll ur)
+            (make-segment lr ul)))))
 
 ; Part (c):
 
@@ -1102,11 +1102,11 @@
          (rm (scale-vect 0.5 (add-vect lr ur)))
          (bm (scale-vect 0.5 (add-vect ll lr)))
          (tm (scale-vect 0.5 (add-vect ul ur))))
-  (segments->painter
-    (list (make-segment lm um)
-          (make-segment um rm)
-          (make-segment rm bm)
-          (make-segment bm lm))))
+    (segments->painter
+      (list (make-segment lm um)
+            (make-segment um rm)
+            (make-segment rm bm)
+            (make-segment bm lm)))))
 
 ; Part (d):
 ;
@@ -1226,4 +1226,39 @@
   (let ((combine4 (square-of-four identity flip-horiz
                                   flip-vert rotate180)))
     (combine4 (corner-split painter n))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.53                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(list 'a 'b 'c)                         ; (a b c)
+(list (list 'george))                   ; ((george))
+(cdr '((x1 x2) (y1 y2)))                ; ((y1 y2))
+(cadr '((x1 x2) (y1 y2)))               ; (y1 y2)
+(pair? (car '(a short list)))           ; #f
+(memq 'red '((red shoes) (blue socks))) ; #f
+(memq 'red '(red shoes blue socks))     ; (red shoes blue socks)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.54                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (equal-book? l1 l2)
+  (let ((a1 (car l1)) (d1 (cdr l1))
+        (a2 (car l2)) (d2 (cdr l2)))
+    (cond
+      ((and (symbol? a1) (symbol? a2)) (and (eq? a1 a2) (equal-book? d1 d2)))
+      ((and (number? a1) (number? a2)) (and (= a1 a2) (equal-book? d1 d2)))
+      (else (and (equal-book? a1 a2) (equal-book? d1 d2))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.55                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; ''abracadabr is syntactic sugar for (quote (quote abracadabra)). Taking the
+; car of that gives: quote.
+
 
