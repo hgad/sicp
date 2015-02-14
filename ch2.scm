@@ -1262,3 +1262,258 @@
 ; car of that gives: quote.
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.56                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (variable? x) (symbol? x))
+
+(define (same-variable? v1 v2)
+  (and (variable? v1) (variable? v2) (eq? v1 v2)))
+
+(define (make-sum a1 a2) (list '+ a1 a2))
+
+(define (make-product m1 m2) (list '* m1 m2))
+
+(define (sum? x)
+  (and (pair? x) (eq? (car x) '+)))
+
+(define (addend s) (cadr s))
+
+(define (augend s) (caddr s))
+
+(define (product? x)
+  (and (pair? x) (eq? (car x) '*)))
+
+(define (multiplier p) (cadr p))
+
+(define (multiplicand p) (caddr p))
+
+(define (=number? ex num)
+  (and (number? ex) (= ex num)))
+
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list '+ a1 a2))))
+
+(define (make-product m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list '* m1 m2))))
+
+(define (exponentiation? x)
+  (and (pair? x) (eq? (car x) '**)))
+
+(define (base e) (cadr e))
+
+(define (exponent e) (caddr e))
+
+(define (make-exponentiation b e)
+  (cond ((=number? e 0) 1)
+        ((=number? e 1) b)
+        ((and (number? b) (number? e)) (expt b e))
+        (else (list '** b e))))
+
+(define (deriv ex var)
+  (cond ((number? ex) 0)
+        ((variable? ex)
+         (if (same-variable? ex var) 1 0))
+        ((sum? ex)
+         (make-sum (deriv (addend ex) var)
+                   (deriv (augend ex) var)))
+        ((product? ex)
+         (make-sum
+           (make-product (multiplier ex)
+                         (deriv (multiplicand ex) var))
+           (make-product (deriv (multiplier ex) var)
+                         (multiplicand ex))))
+        ((exponentiation? ex)
+         (make-product
+           (make-product
+             (exponent ex)
+             (make-exponentiation (base ex)
+                                  (make-sum (exponent ex) -1)))
+           (deriv (base ex) var)))
+        ((paren-expr? ex) (deriv (car ex) var))
+        (else
+         (error "unknown expression type -- DERIV" ex))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.57                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (augend s)
+  (if (= (length s) 3)
+    (caddr s)
+    (cons '+ (cddr s))))
+
+(define (multiplicand s)
+  (if (= (length s) 3)
+    (caddr s)
+    (cons '* (cddr s))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.58                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Part (a):
+
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list a1 '+ a2))))
+
+(define (make-product m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list m1 '* m2))))
+
+(define (sum? x)
+  (and (pair? x) (eq? (cadr x) '+)))
+
+(define (addend s) (car s))
+
+(define (augend s) (caddr s))
+
+(define (product? x)
+  (and (pair? x) (eq? (cadr x) '*)))
+
+(define (multiplier p) (car p))
+
+(define (multiplicand p) (caddr p))
+
+; Part (b):
+
+(define (join l sym)
+  (if (= (length l) 1)
+    (if (sum? (car l)) l (car l))
+    (append (list (car l) sym)
+            (join (cdr l) sym))))
+
+(define (make-sum . as)
+  (let ((numbers-sum (fold-right + 0 (filter (lambda (a) (number? a)) as)))
+        (non-numbers (filter (lambda (a) (not (number? a))) as)))
+    (cond ((zero? (length non-numbers)) numbers-sum)
+          ((zero? numbers-sum) (join non-numbers '+))
+          (else (append (join non-numbers '+) (list '+ numbers-sum))))))
+
+(define (make-product . ms)
+  (let ((numbers-product (fold-right * 1 (filter (lambda (m) (number? m)) ms)))
+        (non-numbers (filter (lambda (m) (not (number? m))) ms)))
+    (cond ((zero? (length non-numbers)) numbers-product)
+          ((zero? numbers-product) 0)
+          ((= numbers-product 1) (join non-numbers '+))
+          (else (append (list numbers-product '*) (join non-numbers '*))))))
+
+(define (sum? x) (and (pair? x) (memq '+ x)))
+
+(define (addend s)
+  (take-while (lambda (x) (not (eq? x '+))) s))
+
+(define (augend s) (cdr (memq '+ s)))
+
+(define (product? x)
+  (and (pair? x) (memq '* x) (not (sum? x))))
+
+(define (multiplier p) (car p))
+
+(define (multiplicand p) (cddr p))
+
+(define (paren-expr? ex) (and (pair? ex) (= (length ex) 1)))
+
+(deriv '(x + 3 * (x * x + y + 2)) 'x) ; (3 * (x + x) + 1)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.59                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (element-of-set? x set)
+  (cond ((null? set) #f)
+        ((equal? x (car set)) #t)
+        (else (element-of-set? x (cdr set)))))
+
+(define (union-set set1 set2)
+  (cond
+    ((null? set1) set2)
+    ((element-of-set? (car set1) set2) (union-set (cdr set1) set2))
+    (else (cons (car set1) (union-set (cdr set1) set2)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.60                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (element-of-set? x set)
+  (cond ((null? set) #f)
+        ((equal? x (car set)) #t)
+        (else (element-of-set? x (cdr set)))))
+
+(define (adjoin-set x set) (cons x set))
+
+(define (intersection-set set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((element-of-set? (car set1) set2)
+         (cons (car set1)
+               (intersection-set (cdr set1) set2)))
+        (else (intersection-set (cdr set1) set2))))
+
+(define (union-set set1 set2) (append set1 set2))
+
+; element-of-set?: theta(n) (here n is the number of elements in the list
+;                            representation of the set, which is generally
+;                            speaking, larger than the number of set elements).
+; adjoin-set: theta(1)
+; intersection-set: theta(n^2) (n is as described before).
+; union-set: theta(1) (assuming append is theta(1) at that level of abstraction,
+;                      but in general, append is theta(n)).
+;
+; Another aspect to take in account is that a set in this representation in
+; general takes a lot more space than a set in the non-duplicate representation.
+;
+; This representation can be used in applications where elements are added to
+; sets and sets are merged a lot more often than sets being inspected for
+; certain elements or set intersections are computed.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.60                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (adjoin-set x set)
+  (cond
+    ((= x (car set)) set)
+    ((< x (car set)) (cons x set))
+    (else (cons (car set) (adjoin-set x (cdr set))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.61                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (union-set set1 set2)
+  (cond
+    ((null? set1) set2)
+    ((null? set2) set1)
+    (else
+      (let ((x (car set1)) (y (car set2)))
+        (cond
+          ((= x y) (cons x (union-set (cdr set1) (cdr set2))))
+          ((< x y) (cons x (union-set (cdr set1) set2)))
+          (else (cons y (union-set set1 (cdr set2)))))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.62                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
