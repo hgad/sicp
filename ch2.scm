@@ -1486,7 +1486,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ex2.60                                                                     ;;
+;; ex2.61                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (adjoin-set x set)
@@ -1497,7 +1497,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ex2.61                                                                     ;;
+;; ex2.62                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (union-set set1 set2)
@@ -1513,7 +1513,311 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ex2.62                                                                     ;;
+;; ex2.63                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Part (a):
+;
+; The two procedures produce the same results. tree->list-1 converts the left
+; branch first and then appends to it the conversion of the right branch.
+; tree->list-2 converts the right branch first and then keeps cons'ing the left
+; branch right-to-left depth-first.
+;
+; For all trees, both functions will produce the following result:
+;   (1 3 5 7 9 11)
+;
+; Part (b):
+;
+; They both grow in theta(n) number of steps (hesitant).
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.64                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Part (a):
+;
+; The first n elements of elts are divided into three parts, of sizes left-size
+; (equals to floor((n-1)/2), 1 and right-size (equals to ((n-1) - left-size)).
+; The first left-size elements are used to create the left-result, whose car is
+; the left-tree and cdr is the non-left-elts. The next element is going to be
+; this-entry. The next right-size elements are used to create the right-result,
+; whose car is the right-tree and cdr is the remaining-elts. Finally, the tree
+; is constructed from this-entry, left-tree and right-tree and cons'ed to the
+; remaining-elmts.
+;
+;                            5
+;                           / \
+;                          /   \
+;                         1     9
+;                          \   / \
+;                           3 7   11
+;
+; Part (b); theta(n)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.65                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (union-set set1 set2)
+  (define (union-set-list l1 l2)
+    (cond
+      ((null? l1) l2)
+      ((null? l2) l1)
+      (else
+        (let ((x (car l1)) (y (car l2)))
+          (cond
+            ((= x y) (cons x (union-set-list (cdr l1) (cdr l2))))
+            ((< x y) (cons x (union-set-list (cdr l1) l2)))
+            (else (cons y (union-set-list l1 (cdr l2)))))))))
+  (list->tree (union-set-list (tree->list-2 set1) (tree->list-2 set2))))
+
+(define (intersection-set set1 set2)
+  (define (intersection-set-list l1 l2)
+    (if (or (null? l1) (null? l2))
+        '()
+        (let ((x1 (car l1)) (x2 (car l2)))
+          (cond ((= x1 x2) (cons x1 (intersection-set-list (cdr l1) (cdr l2))))
+                ((< x1 x2) (intersection-set-list (cdr l1) l2))
+                (else (intersection-set-list l1 (cdr l2)))))))
+  (list->tree (intersection-set-list (tree->list-2 set1) (tree->list-2 set2))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.66                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (lookup given-key set-of-records)
+  (cond ((null? set-of-records) false)
+        ((= given-key (key (entry set-of-records))) (entry set-of-records))
+        ((< given-key (key (entry set-of-records)))
+         (lookup given-key (left-branch set-of-records)))
+        ((> given-key (key (entry set-of-records)))
+         (lookup given-key (right-branch set-of-records)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.67                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-leaf symbol weight)
+  (list 'leaf symbol weight))
+
+(define (leaf? object)
+  (eq? (car object) 'leaf))
+
+(define (symbol-leaf x) (cadr x))
+
+(define (weight-leaf x) (caddr x))
+
+(define (make-code-tree left right)
+  (list left
+        right
+        (append (symbols left) (symbols right))
+        (+ (weight left) (weight right))))
+
+(define (left-branch tree) (car tree))
+
+(define (right-branch tree) (cadr tree))
+
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch (car bits) current-branch)))
+          (if (leaf? next-branch)
+              (cons (symbol-leaf next-branch)
+                    (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits) next-branch)))))
+  (decode-1 bits tree))
+
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit -- CHOOSE-BRANCH" bit))))
+
+(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                    (make-leaf 'B 2)
+                    (make-code-tree (make-leaf 'D 1)
+                                    (make-leaf 'C 1)))))
+
+(define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+
+(decode sample-message sample-tree) ; (a d a b b c a)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.68                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append (encode-symbol (car message) tree)
+              (encode (cdr message) tree))))
+
+(define (encode-symbol symbol tree)
+  (let ((left (left-branch tree)) (right (right-branch tree)))
+    (cond
+      ((leaf? tree) '())
+      ((element-of-set? symbol (symbols left))
+        (cons 0 (encode-symbol symbol left)))
+      ((element-of-set? symbol (symbols right))
+        (cons 1 (encode-symbol symbol right)))
+      (else (error "bad symbol - ENCODE-SYMBOL" symbol)))))
+
+(encode '(a d a b b c a) sample-tree) ; (0 1 1 0 0 1 0 1 0 1 1 1 0)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.69                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set))) (cons x set))
+        (else (cons (car set)
+                    (adjoin-set x (cdr set))))))
+
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set (make-leaf (car pair)    ; symbol
+                               (cadr pair))  ; frequency
+                    (make-leaf-set (cdr pairs))))))
+
+(define (generate-huffman-tree pairs)
+  (successive-merge (make-leaf-set pairs)))
+
+(define (successive-merge set)
+  (if (= (length set) 1)
+    (car set)
+    (successive-merge (adjoin-set (make-code-tree (car set) (cadr set))
+                                  (cddr set)))))
+
+(generate-huffman-tree '((a 4) (b 2) (c 1) (d 1)))
+; ((leaf a 4) ((leaf b 2) ((leaf d 1) (leaf c 1) (d c) 2) (b d c) 4) (a b d c) 8)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.70                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define huffman-tree (generate-huffman-tree
+  '((A 2) (NA 16) (BOOM 1) (SHA 3) (GET 2) (YIP 9) (JOB 2) (WAH 1))))
+
+(define message '(Get a job
+                  Sha na na na na na na na na
+                  Get a job
+                  Sha na na na na na na na na
+                  Wah yip yip yip yip yip yip yip yip yip
+                  Sha boom))
+
+(encode message huffman-tree)
+
+; (1 1 1 1 1 1 1 0 0 1 1 1 1 0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 0 0 1 1 1 1
+;  0 1 1 1 0 0 0 0 0 0 0 0 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 1 1
+;  0 1 1 0 1 1)
+
+; The huffman-encoded message needs 84 bits. Using fixed-length codes, each
+; symbol of the 8 symbols will be encoded in 3 bits. We have 36 symbols in the
+; message, so the minimum number of bits needed is 3 * 36 = 108.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.71                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Since 2^n < 2^(n+1) for all integers n > 0, then 2^n + 2^(n+1) < 2*2^(n+1)
+; i.e. 2^n + 2^(n+1) < 2^(n+2). This means that the sum of weights of every two
+; consequtive symbols is always going to be less than that of the next symbol in
+; sequence. This means that trees will always grow to the right.
+;
+; n = 5:
+;                   (a b c d e) 31
+;                        /\
+;                       /  \
+;                      /    \
+;                    e 16  (a b c d) 15
+;                            /\
+;                           /  \
+;                          /    \
+;                        d 8   (a b c) 7
+;                                /\
+;                               /  \
+;                              /    \
+;                            c 4   (a b) 3
+;                                    /\
+;                                   /  \
+;                                  /    \
+;                                b 2    a 1
+;
+;
+; n = 10:
+;               (a b c d e f g h i j) 1023
+;                        /\
+;                       /  \
+;                      /    \
+;                   j 512  (a b c d e f g h i) 511
+;                            /\
+;                           /  \
+;                          /    \
+;                       i 256  (a b c d e f g h) 255
+;                                /\
+;                               /  \
+;                              /    \
+;                           h 128  (a b c d e f g) 127
+;                                    /\
+;                                   /  \
+;                                  /    \
+;                                g 64  (a b c d e f) 63
+;                                        /\
+;                                       /  \
+;                                      /    \
+;                                    f 32  (a b c d e) 31
+;                                            /\
+;                                           /  \
+;                                          /    \
+;                                        e 16  (a b c d) 15
+;                                                /\
+;                                               /  \
+;                                              /    \
+;                                            d 8   (a b c) 7
+;                                                    /\
+;                                                   /  \
+;                                                  /    \
+;                                                c 4   (a b) 3
+;                                                        /\
+;                                                       /  \
+;                                                      /    \
+;                                                     b 2   a 1
+;
+; Most frequent symbol: 1-bit
+; Least frequent symbol: (n-1)-bits
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.72                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Order of growth of encode for a message consisting solely of n instances of
+; the most frequent symbol is theta(n).
+;
+; Order of growth of encode for a message consisting solely of n instances of
+; the least frequent symbol is theta(n^2).
 
