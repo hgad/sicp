@@ -1821,3 +1821,178 @@
 ; Order of growth of encode for a message consisting solely of n instances of
 ; the least frequent symbol is theta(n^2).
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.73                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Part (a):
+;
+; What happened is that now the derivation function for every expression type is
+; stored in an operation table which is accessed with two keys:
+;   1) The operation name (always 'deriv),
+;   2) The expression type tag being the expression symbol (e.g. +).
+;
+; We couldn't assimilate number? and same-variable? predicates because there is
+; no expression symbol to act as key in the operation table for numbers and
+; variables.
+;
+; Part (b):
+
+(define (attach-tag tag ex) (cons tag ex))
+
+(define (install-sum-deriv-rule)
+  ;; internal procedures
+  (define (make-sum x y) (cons x y))
+  (define (addend operands) (car operands))
+  (define (augend operands) (cdr operands))
+
+  (define (sum-deriv operands var)
+    (make-sum (deriv (addend operands) var)
+              (deriv (augend operands) var)))
+
+  ;; interface to the rest of the system
+  (define (tag x) (attach-tag '+ x))
+  (put 'deriv '+ sum-deriv)
+  (put 'make-sum '+ (lambda (x y) (tag (make-sum x y))))
+
+  'done)
+
+(define (install-product-deriv-rule)
+  ;; internal procedures
+  (define (make-product x y) (cons x y))
+  (define (multiplier operands) (car operands))
+  (define (multiplicand operands) (cdr operands))
+
+  (define (product-deriv operands var)
+    (make-sum (make-product (multiplier operands)
+                            (deriv (multiplicand operands) var))
+              (make-product (deriv (multiplier operands) var)
+                            (multiplicand operands))))
+
+  ;; interface to the rest of the system
+  (define (tag x) (attach-tag '* x))
+  (put 'deriv '* product-deriv)
+  (put 'make-product '* (lambda (x y) (tag (make-product x y))))
+
+  'done)
+
+(define make-sum (get 'make-sum '+))
+(define make-product (get 'make-product '*))
+
+; Part (c):
+
+(define (install-exponentiation-deriv-rule)
+  ;; internal procedures
+  (define (make-exponentiation b e) (cons b e))
+  (define (base operands) (car operands))
+  (define (exponent operands) (cdr operands))
+
+  (define (exponentiation-deriv operands var)
+    (make-product (exponent operands)
+                  (make-exponentiation (base operands)
+                                       (make-sum (exponent operands) -1))))
+
+  ;; interface to the rest of the system
+  (define (tag x) (attach-tag '** x))
+  (put 'deriv '** exponentiation-deriv)
+  (put 'make-exponentiation '** (lambda (b e) (tag (make-exponentiation b e))))
+
+  'done)
+
+(define make-exponentiation (get 'make-exponentiation '**))
+
+; Part (d):
+;
+; Just switch the arguments to the 'put' procedure too.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.74                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Part (a):
+
+(define (get-record name file)
+  ((get 'get-record (file-division file)) name file))
+
+; each division personnel file must have type information specifying which
+; division this file belongs to, such that (file-division file) should be able
+; to return the file's division.
+;
+; Part (b):
+
+(define (get-salary record)
+  ((get 'get-salary (record-division record)) record))
+
+; Part (c):
+
+(define (find-employee-record name files)
+  (if (null? files)
+    #f
+    (or (get-record name (car files))
+        (find-employee-record name (cdr files)))))
+
+; Part (d):
+;
+; When a new company comes in, they have to install their own get-record and
+; get-salary (and possibly other) procedures in the operations table by calling
+; 'put' on every procedure passing it the division (company) name as a type tag.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.75                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (make-from-mag-ang r a)
+  (define (dispatch op)
+    (cond ((eq? op 'real-part) (* r (cos a)))
+          ((eq? op 'imag-part) (* r (sin a)))
+          ((eq? op 'magnitude) r)
+          ((eq? op 'angle) a)
+          (else
+           (error "Unknown op -- MAKE-FROM-MAG_ANG" op))))
+  dispatch)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.76                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Explicit Dispatch:
+;   New Type:      Create operations for the new type and add a clause for the
+;                  new type and for every operation under that type in the
+;                  dispatch manager.
+;   New Operation: Add a clause for the new operation under that type in the
+;                  dispatch manager.
+;
+; Data-Directed:
+;   New Type:      Create operations for the new type and create an installation
+;                  procedure to install the new type operations in the
+;                  operations table.
+;   New Operation: Modify the installation procedure by adding a new 'put' call
+;                  to install the new procedure for this type.
+;
+; Message-Passing:
+;   New Type:      Create operations for the new type and add them to the type's
+;                  dispatch procedure, which is usually defined in the type's
+;                  constructor.
+;   New Operation: Add the new procedure to the type's dispatch procedure.
+;
+; I'd use message-passing for systems where types are added all the time,
+; because it involves nothing more that implementing the type's constructor
+; procedure, as opposed to having to go through the hassle of creating an
+; installation procedure for every new type as is the case with the
+; data-directed style.
+;
+; For systems where new procedures are added all the time, I'd go with the
+; data-directed style because the process is as simple as installing new
+; procedures using a 'put' as opposed to having to modify types' dispatch
+; procedures by adding new clauses all the time for the new procedures.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.77                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
