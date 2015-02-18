@@ -1995,4 +1995,70 @@
 ;; ex2.77                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; (magnitude z) is going to evaluate (apply-generic 'magnitude z). This will
+; strip off the type tag from z (in this case, it's (complex)) and use it as a
+; key in the table along with the operation symbol 'magnitude. This will return
+; the generic magnitude operation which works on both polar and rectangular
+; complex numbers. Calling this function will evaluate (apply-generic 'magnitude
+; (contents z)). (contents z) is the list (rectangular (3 . 4)), so
+; apply-generic with access the operations table using the operation symbol
+; 'magnitude and the type tag (rectangular). This will return the rectangular
+; magnitude calculation procedure which returns the square root of the sum of
+; squares of its arguments thus returning 5.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.78                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (type-tag obj)
+  (if (number? obj)
+    'scheme-number
+    (car obj)))
+
+(define (contents obj)
+  (if (number? obj)
+    obj
+    (cadr obj)))
+
+(define (attach-tag tag obj)
+  (if (eq? tag 'scheme-number)
+    obj
+    (list tag obj)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.79                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(put 'equ? '(scheme-number scheme-number)
+  (lambda (n1 n2) (= n1 n2)))
+
+(put 'equ? '(rational rational)
+  (lambda (n1 n2) (and (= (numer n1) (numer n2))
+                       (= (denom n1) (denom n2)))))
+
+(put 'equ? '(complex complex)
+  (lambda (n1 n2) (and (= (real-part n1) (real-part n2))
+                       (= (imag-part n1) (imag-part n2)))))
+
+(define (equ? n1 n2)
+  ((get 'equ? (list (type-tag n1) (type-tag n2))) n1 n2))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.80                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(put '=zero? 'scheme-number
+  (lambda (n) (zero? n)))
+
+(put '=zero? 'rational
+  (lambda (n) (zero? (numer n1))))
+
+(put '=zero? 'complex
+  (lambda (n) (and (zero? (real-part n)) (zero? (imag-part n)))))
+
+(define (=zero? n)
+  ((get '=zero? (type-tag n)) n))
 
