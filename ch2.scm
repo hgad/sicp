@@ -1877,8 +1877,11 @@
 
   'done)
 
-(define make-sum (get 'make-sum '+))
-(define make-product (get 'make-product '*))
+(define (make-sum x y)
+  ((get 'make-sum '+) x y))
+
+(define (make-product x y)
+  ((get 'make-product '*) x y))
 
 ; Part (c):
 
@@ -1900,7 +1903,8 @@
 
   'done)
 
-(define make-exponentiation (get 'make-exponentiation '**))
+(define (make-exponentiation b e)
+  ((get 'make-exponentiation '**) b e))
 
 ; Part (d):
 ;
@@ -2031,16 +2035,17 @@
 ;; ex2.79                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(put 'equ? '(scheme-number scheme-number)
-  (lambda (n1 n2) (= n1 n2)))
+(define (install-equ?)
+  (put 'equ? '(scheme-number scheme-number)
+    (lambda (n1 n2) (= n1 n2)))
 
-(put 'equ? '(rational rational)
-  (lambda (n1 n2) (and (= (numer n1) (numer n2))
-                       (= (denom n1) (denom n2)))))
+  (put 'equ? '(rational rational)
+    (lambda (n1 n2) (and (= (numer n1) (numer n2))
+                         (= (denom n1) (denom n2)))))
 
-(put 'equ? '(complex complex)
-  (lambda (n1 n2) (and (= (real-part n1) (real-part n2))
-                       (= (imag-part n1) (imag-part n2)))))
+  (put 'equ? '(complex complex)
+    (lambda (n1 n2) (and (= (real-part n1) (real-part n2))
+                         (= (imag-part n1) (imag-part n2))))))
 
 (define (equ? n1 n2)
   ((get 'equ? (list (type-tag n1) (type-tag n2))) n1 n2))
@@ -2050,15 +2055,157 @@
 ;; ex2.80                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(put '=zero? 'scheme-number
-  (lambda (n) (zero? n)))
+(define (install-=zero?)
+  (put '=zero? 'scheme-number
+    (lambda (n) (zero? n)))
 
-(put '=zero? 'rational
-  (lambda (n) (zero? (numer n1))))
+  (put '=zero? 'rational
+    (lambda (n) (zero? (numer n1))))
 
-(put '=zero? 'complex
-  (lambda (n) (and (zero? (real-part n)) (zero? (imag-part n)))))
+  (put '=zero? 'complex
+    (lambda (n) (and (zero? (real-part n)) (zero? (imag-part n))))))
 
 (define (=zero? n)
   ((get '=zero? (type-tag n)) n))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.81                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Part (a):
+;
+; Calling exp with two complex numbers in this case will never return
+; (apply-generic will go into infinite recursion).
+;
+; Part (b):
+;
+; No, he's not. apply-generic is correct as-is. If the two arguments have the
+; same type, and that type exists in the table for this operation, proc will not
+; be false and will be applied to the contents of the arguments. If the type
+; does not exists in the table for this operation, apply-generic rightly give an
+; error.
+;
+; Part (c):
+
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (and (= (length args) 2)
+                   (not (= (car type-tags) (cadr type-tags))))
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags))
+                    (a1 (car args))
+                    (a2 (cadr args)))
+                (let ((t1->t2 (get-coercion type1 type2))
+                      (t2->t1 (get-coercion type2 type1)))
+                  (cond (t1->t2
+                         (apply-generic op (t1->t2 a1) a2))
+                        (t2->t1
+                         (apply-generic op a1 (t2->t1 a2)))
+                        (else
+                         (error "No method for these types"
+                                (list op type-tags))))))
+              (error "No method for these types"
+                     (list op type-tags)))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.82                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (apply-generic op . args)
+  (define (coerce-args-to-argn args argn)
+    (let* ((argn-type (type-tag argn))
+          (new-args
+            (map (lambda (arg)
+                    (if (= (type-tag arg) argn-type)
+                      arg
+                      (let ((coerce (get-coercion (type-tag arg) argn-type)))
+                        (if coerce (coerce arg) #f))))
+                  args)))
+        (if (fold-right (lambda (x y) (and x y)) #t new-args) new-args #f)))
+
+  (define (try-coercion op all-args remaining-args)
+    (let ((new-args (coerce-args-to-argn all-args (car remaining-args))))
+      (cond
+        ((null? remaining-args) (error "No method for these types"
+                                       (list op type-tags)))
+        (new-args
+          (let ((proc (get op (map type-tag new-args))))
+            (and proc (apply proc (map contents new-args)))))
+        (else (try-coercion op all-args (cdr remaining-args))))))
+
+  (let* ((type-tags (map type-tag args))
+         (proc (get op type-tags)))
+      (if proc
+        (apply proc (map contents args))
+        (try-coercion op args args))))
+
+; An example where the above solution will still fail is when the type hierarchy
+; is a lattice and the least upper bound of all argument types is not equal to
+; any of the argument types. For this case to work, all arguments have to be
+; coerced to the least upper bound type. For example, assume the function max()
+; is defined only for rational and complex numbers but not for scheme numbers.
+; Calling this function with two scheme number will not work even though scheme
+; numbers are coercible to rational numbers.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.83                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (install-raise)
+  (define (raise-integer obj)
+    (make-rat obj 1))
+
+  (define (raise-rat obj)
+    (/ (numer obj) (denom obj)))
+
+  (define (raise-real obj)
+    (make-rectangular obj 0))
+
+  (put 'raise 'integer raise-integer)
+  (put 'raise 'rational raise-rat)
+  (put 'raise 'real raise-real))
+
+(define (raise obj)
+  ((get 'raise (type-tag obj)) (contents obj)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.84                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (apply-generic op . args)
+  (define (higher-type? high low)
+    (let ((type-hierarchy '(integer rational real complex)))
+      (< (length (memq high type-hierarchy))
+        (length (memq low type-hierarchy)))))
+
+  (define (get-highest-type arg-types)
+    (fold-right (lambda (t1 t2) (if (higher-type? t1 t2) t1 t2))
+                'integer arg-types))
+
+  (define (successive-raise arg type)
+    (if (= (type-tag arg) type)
+      arg
+      (successive-raise (raise arg) type)))
+
+  (let* ((type-tags (map type-tag args))
+         (highest-type (get-highest-type type-tags))
+         (new-args (map (lambda (arg) (successive-raise arg highest-type))
+                        args))
+         (proc (get op (map type-tag new-args))))
+      (if proc
+        (apply proc (map contents new-args))
+        (error "No method for these types" (list op type-tags)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.85                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
