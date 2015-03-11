@@ -1,5 +1,5 @@
 (module debug (newlines title println id put get put-coercion get-coercion
-               reset-proc-table reset-coercion-table install-proc)
+               reset-proc-table reset-coercion-table install-proc install-proc2)
   (import scheme)
   (import (only chicken sub1))
 
@@ -36,6 +36,11 @@
   (define-syntax-rule (install-proc proc)
     (define (proc arg)
       ((get 'proc (type-tag arg)) (contents arg))))
+
+  (define-syntax-rule (install-proc2 proc)
+    (define (proc arg1 arg2)
+      ((get 'proc (list (type-tag arg1) (type-tag arg2))) (contents arg1)
+                                                          (contents arg2))))
 
   (define proc-table '())
 
@@ -2851,34 +2856,44 @@
 ;; ex2.83                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.83 (make-int make-rat make-real make-complex install-raise raise)
+(module ex2.83 (make-rat make-rect make-pol make-complex
+                install-raise raise type-tag contents)
   (import scheme debug)
   (import (only ex2.1 numer denom))
-  (import (only ex2.73 type-tag contents))
   (title "ex2.83")
   (reset-proc-table)
 
-  (define (make-int n)
-    (cons 'integer n))
+  (define (type-tag obj)
+    (if (number? obj)
+      (if (exact? obj) 'integer 'real)
+      (car obj)))
+
+  (define (contents obj)
+    (if (number? obj)
+      obj
+      (cdr obj)))
 
   (define (make-rat n d)
     (cons 'rational (let ((g (gcd n d))) (cons (/ n g) (/ d g)))))
 
-  (define (make-real n)
-    (cons 'real n))
+  (define (make-rect x y)
+    (cons 'rect (cons x y)))
 
-  (define (make-complex x y)
-    (cons 'complex (cons x y)))
+  (define (make-pol x y)
+    (cons 'pol (cons x y)))
+
+  (define (make-complex n)
+    (cons 'complex n))
 
   (define (install-raise)
     (define (raise-integer obj)
       (make-rat obj 1))
 
     (define (raise-rat obj)
-      (make-real (/ (numer obj) (denom obj))))
+      (exact->inexact (/ (numer obj) (denom obj))))
 
     (define (raise-real obj)
-      (make-complex obj 0))
+      (make-complex (make-rect obj 0)))
 
     (put 'raise 'integer raise-integer)
     (put 'raise 'rational raise-rat)
@@ -2887,9 +2902,9 @@
   (install-raise)
   (install-proc raise)
 
-  (println (raise (make-int 2))) ; (2 . 1)
+  (println (raise 2)) ; (2 . 1)
   (println (raise (make-rat 1 2))) ; 0.5
-  (println (raise (make-real 5.4))) ; (5.4 . 0)
+  (println (raise 5.4)) ; (5.4 . 0)
   (newline))
 
 
@@ -2897,60 +2912,74 @@
 ;; ex2.84                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.84 (install-add add)
+(module ex2.84 (install-add install-complex real imag mag ang higher-type?
+                get-highest-type successive-raise)
   (import scheme debug)
   (import (only chicken foldr error))
   (import (only ex2.1 numer denom))
-  (import (only ex2.73 type-tag contents))
-  (import (only ex2.83 make-int make-rat make-real make-complex install-raise
-                       raise))
+  (import (only ex2.83 type-tag contents make-rat make-rect
+                       make-complex install-raise raise))
   (title "ex2.84")
   (reset-proc-table)
   (install-raise)
 
-  (define (install-add)
-    (define (real x) (car x))
-    (define (imag x) (cdr x))
+  (define (install-complex)
+    (define (square x) (* x x))
 
-    (put 'add '(integer integer) (lambda (x y) (make-int (+ x y))))
+    (put 'real 'rect (lambda (x) (car x)))
+    (put 'real 'pol (lambda (x) (* (car x) (cos (cdr x)))))
+    (put 'imag 'rect (lambda (x) (cdr x)))
+    (put 'imag 'pol (lambda (x) (* (car x) (sin (cdr x)))))
+    (put 'mag 'rect (lambda (x) (sqrt (+ (square (car x)) (square (cdr x))))))
+    (put 'mag 'pol (lambda (x) (car x)))
+    (put 'ang 'rect (lambda (x) (atan (/ (cdr x) (car x)))))
+    (put 'ang 'pol (lambda (x) (cdr x))))
+
+  (install-complex)
+  (install-proc real)
+  (install-proc imag)
+  (install-proc mag)
+  (install-proc ang)
+
+  (define (install-add)
+    (put 'add '(integer integer) (lambda (x y) (+ x y)))
     (put 'add '(rational rational) (lambda (x y) (make-rat (+ (* (numer x) (denom y))
                                                               (* (numer y) (denom x)))
                                                            (* (denom x) (denom y)))))
-    (put 'add '(real real) (lambda (x y) (make-real (+ x y))))
-    (put 'add '(complex complex) (lambda (x y) (make-complex (+ (real x) (real y))
-                                                             (+ (imag x) (imag y))))))
+    (put 'add '(real real) (lambda (x y) (+ x y)))
+    (put 'add '(complex complex) (lambda (x y) (make-complex
+                                                 (make-rect (+ (real x) (real y))
+                                                            (+ (imag x) (imag y)))))))
   (install-add)
-  (define (add n1 n2)
-    ((get 'add (list (type-tag n1) (type-tag n2))) n1 n2))
+  (install-proc2 add)
+
+  (define (higher-type? high low)
+    (let ((type-hierarchy '(integer rational real complex)))
+      (< (length (memq high type-hierarchy))
+          (length (memq low type-hierarchy)))))
+
+  (define (get-highest-type arg-types)
+    (foldr (lambda (t1 t2) (if (higher-type? t1 t2) t1 t2))
+                'integer arg-types))
+
+  (define (successive-raise arg type)
+    (if (eq? (type-tag arg) type)
+      arg
+      (successive-raise (raise arg) type)))
 
   (define (apply-generic op . args)
-    (define (higher-type? high low)
-      (let ((type-hierarchy '(integer rational real complex)))
-        (< (length (memq high type-hierarchy))
-           (length (memq low type-hierarchy)))))
-
-    (define (get-highest-type arg-types)
-      (foldr (lambda (t1 t2) (if (higher-type? t1 t2) t1 t2))
-                  'integer arg-types))
-
-    (define (successive-raise arg type)
-      (if (eq? (type-tag arg) type)
-        arg
-        (successive-raise (raise arg) type)))
-
     (let* ((type-tags (map type-tag args))
            (highest-type (get-highest-type type-tags))
-           (new-args (map (lambda (arg) (successive-raise arg highest-type))
-                          args))
+           (new-args (map (lambda (arg) (successive-raise arg highest-type)) args))
            (proc (get op (map type-tag new-args))))
         (if proc
           (apply proc (map contents new-args))
           (error "No method for these types" (list op type-tags)))))
 
-  (println (apply-generic 'add (make-int 1) (make-rat 3 6)))
-  (println (apply-generic 'add (make-int 4) (make-real 5.4)))
-  (println (apply-generic 'add (make-int 2) (make-complex 5 4)))
-  (println (apply-generic 'add (make-complex 5 4) (make-rat 2 5)))
+  (println (apply-generic 'add 1 (make-rat 3 6))) ; (rational 3 . 2)
+  (println (apply-generic 'add 4 5.4)) ; 9.4
+  (println (apply-generic 'add 2 (make-complex (make-rect 5 4)))) ; (complex rect 7.0 . 4)
+  (println (apply-generic 'add (make-complex (make-rect 5 4)) (make-rat 2 5))) ; (complex rect 5.4 . 4)
   (newline))
 
 
@@ -2958,40 +2987,38 @@
 ;; ex2.85                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.85 ()
+(module ex2.85 (install-project install-equ? apply-generic add)
   (import scheme debug)
   (import (only chicken foldr error))
   (import (only ex2.1 numer denom))
-  (import (only ex2.73 type-tag contents))
-  (import (only ex2.83 make-int make-rat make-real make-complex install-raise raise))
-  (import (only ex2.84 install-add add))
+  (import (only ex2.83 type-tag contents make-rat make-rect
+                       make-complex install-raise raise))
+  (import (only ex2.84 install-complex real imag install-add higher-type?
+                       get-highest-type successive-raise))
   (title "ex2.85")
   (reset-proc-table)
   (install-raise)
+  (install-complex)
   (install-add)
 
-  (define (real x) (car x))
-  (define (imag x) (cdr x))
-
   (define (install-project)
-    (put 'project 'rational (lambda (x) (make-int (numer x))))
+    (put 'project 'rational (lambda (x) (numer x)))
     (put 'project 'real (lambda (x) (make-rat (inexact->exact (round x)) 1)))
-    (put 'project 'complex (lambda (x) (make-real (real x)))))
+    (put 'project 'complex (lambda (x) (real x))))
 
   (install-project)
   (install-proc project)
 
   (define (install-equ?)
     (put 'equ? '(integer integer) (lambda (x y) (= x y)))
-    (put 'equ? '(rational rational) (lambda (x y) (and (= (numer x) (numer y))
-                                                       (= (denom x) (denom y)))))
+    (put 'equ? '(rational rational) (lambda (x y) (and (equ? (numer x) (numer y))
+                                                       (equ? (denom x) (denom y)))))
     (put 'equ? '(real real) (lambda (x y) (= x y)))
-    (put 'equ? '(complex complex) (lambda (x y) (and (= (real x) (real y))
-                                                     (= (imag x) (imag y))))))
+    (put 'equ? '(complex complex) (lambda (x y) (and (equ? (real x) (real y))
+                                                     (equ? (imag x) (imag y))))))
 
   (install-equ?)
-  (define (equ? n1 n2)
-    ((get 'equ? (list (type-tag n1) (type-tag n2))) (contents n1) (contents n2)))
+  (install-proc2 equ?)
 
   (define (drop x)
     (if (eq? (type-tag x) 'integer)
@@ -3000,30 +3027,100 @@
         (if (equ? (raise projection) x) (drop projection) x))))
 
   (define (apply-generic op . args)
-    (define (higher-type? high low)
-      (let ((type-hierarchy '(integer rational real complex)))
-        (< (length (memq high type-hierarchy))
-           (length (memq low type-hierarchy)))))
-
-    (define (get-highest-type arg-types)
-      (foldr (lambda (t1 t2) (if (higher-type? t1 t2) t1 t2))
-                  'integer arg-types))
-
-    (define (successive-raise arg type)
-      (if (eq? (type-tag arg) type)
-        arg
-        (successive-raise (raise arg) type)))
-
     (let* ((type-tags (map type-tag args))
            (highest-type (get-highest-type type-tags))
-           (new-args (map (lambda (arg) (successive-raise arg highest-type))
-                          args))
+           (new-args (map (lambda (arg) (successive-raise arg highest-type)) args))
            (proc (get op (map type-tag new-args))))
         (if proc
           (drop (apply proc (map contents new-args)))
           (error "No method for these types" (list op type-tags)))))
 
-  (println (apply-generic 'add (make-int 1) (make-rat 2 1)))
-  (println (apply-generic 'add (make-int 4) (make-real 5.0)))
-  (println (apply-generic 'add (make-complex 5 0) (make-rat 2 5)))
+  (define (add x y)
+    (apply-generic 'add x y))
+
+  (println (add 1 (make-rat 2 1))) ; 3
+  (println (add 4 5.0)) ; 9
+  (println (add (make-complex (make-rect 5 0)) (make-rat 2 5))) ; 5.4
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.86                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.86 ()
+  (import scheme debug)
+  (import (only ex2.1 numer denom))
+  (import (only ex2.83 type-tag contents make-rat make-rect
+                       make-pol make-complex install-raise))
+  (import (only ex2.84 install-complex real imag mag ang))
+  (import (only ex2.85 install-project install-equ? apply-generic))
+  (title "ex2.86")
+  (reset-proc-table)
+  (install-raise)
+  (install-complex)
+  (install-project)
+  (install-equ?)
+
+  (define (install-add)
+    (put 'add '(integer integer) (lambda (x y) (+ x y)))
+    (put 'add '(rational rational) (lambda (x y) (make-rat (add (mul (numer x) (denom y))
+                                                                (mul (numer y) (denom x)))
+                                                           (mul (denom x) (denom y)))))
+    (put 'add '(real real) (lambda (x y) (+ x y)))
+    (put 'add '(complex complex) (lambda (x y) (make-complex
+                                                 (make-rect (add (real x) (real y))
+                                                            (add (imag x) (imag y)))))))
+
+  (define (install-sub)
+    (put 'sub '(integer integer) (lambda (x y) (- x y)))
+    (put 'sub '(rational rational) (lambda (x y) (make-rat (sub (mul (numer x) (denom y))
+                                                                (mul (numer y) (denom x)))
+                                                           (mul (denom x) (denom y)))))
+    (put 'sub '(real real) (lambda (x y) (- x y)))
+    (put 'sub '(complex complex) (lambda (x y) (make-complex
+                                                 (make-rect (sub (real x) (real y))
+                                                            (sub (imag x) (imag y)))))))
+
+  (define (install-mul)
+    (put 'mul '(integer integer) (lambda (x y) (* x y)))
+    (put 'mul '(rational rational) (lambda (x y)
+                                     (make-rat (mul (numer x) (numer y))
+                                               (mul (denom x) (denom y)))))
+    (put 'mul '(real real) (lambda (x y) (* x y)))
+    (put 'mul '(complex complex) (lambda (x y)
+                                   (make-complex
+                                     (make-pol (mul (mag x) (mag y))
+                                               (add (ang x) (ang y)))))))
+
+  (define (install-div)
+    (put 'div '(integer integer) (lambda (x y) (inexact->exact (floor (/ x y)))))
+    (put 'div '(rational rational) (lambda (x y)
+                                     (make-rat (mul (numer x) (denom y))
+                                               (mul (denom x) (numer y)))))
+    (put 'div '(real real) (lambda (x y) (/ x y)))
+    (put 'div '(complex complex) (lambda (x y)
+                                   (make-complex
+                                     (make-pol (div (mag x) (mag y))
+                                               (sub (ang x) (ang y)))))))
+
+  (install-add)
+  (install-sub)
+  (install-mul)
+  (install-div)
+
+  (define (add x y)
+    (apply-generic 'add x y))
+
+  (define (sub x y)
+    (apply-generic 'sub x y))
+
+  (define (mul x y)
+    (apply-generic 'mul x y))
+
+  (define (div x y)
+    (apply-generic 'div x y))
+
+  (println (add (make-complex (make-rect (make-rat 3 4) 4)) (make-rat 2 5))) ; (complex rect 1.15 . 4)
+  (println (add (make-complex (make-rect 3 4)) (make-rat 2 5))) ; (complex rect 3.4 . 4)
   (newline))
