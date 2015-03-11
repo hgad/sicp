@@ -1,5 +1,7 @@
-(module debug (newlines title println id)
-  (import scheme chicken)
+(module debug (newlines title println id put get put-coercion get-coercion
+               reset-proc-table reset-coercion-table install-proc)
+  (import scheme)
+  (import (only chicken sub1))
 
   (define (newlines n)
     (if (not (zero? n)) (let () (newline) (newlines (sub1 n)))))
@@ -10,14 +12,58 @@
   (define (println obj)
     (display obj) (newline))
 
-  (define (id x) x))
+  (define (id x) x)
+
+  (define-syntax define-syntax-rule
+    (syntax-rules ()
+      ((define-syntax-rule (name . pattern) template)
+      (define-syntax name
+        (syntax-rules ()
+          ((name . pattern) template))))))
+
+  (define-syntax-rule (put-table table key1 key2 proc)
+    (let ((pair (assoc (cons key1 key2) table)))
+      (if pair
+        (set-cdr! pair proc)
+        (set! table (cons (cons (cons key1 key2) proc) table)))))
+
+  (define-syntax-rule (get-table table key1 key2)
+    (let ((pair (assoc (cons key1 key2) table)))
+      (if pair
+        (cdr pair)
+        #f)))
+
+  (define-syntax-rule (install-proc proc)
+    (define (proc arg)
+      ((get 'proc (type-tag arg)) (contents arg))))
+
+  (define proc-table '())
+
+  (define coercion-table '())
+
+  (define (put op type proc)
+    (put-table proc-table op type proc))
+
+  (define (get op type)
+    (get-table proc-table op type))
+
+  (define (put-coercion type1 type2 proc)
+    (put-table coercion-table type1 type2 proc))
+
+  (define (get-coercion type1 type2)
+    (get-table coercion-table type1 type2))
+
+  (define (reset-proc-table) (set! proc-table '()))
+
+  (define (reset-coercion-table) (set! coercion-table '())))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ex2.1                                                                      ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.1 ()
-  (import scheme chicken debug)
+(module ex2.1 (make-rat numer denom)
+  (import scheme debug)
+  (import (only chicken gcd))
   (title "ex2.1")
 
   (define (make-rat n d)
@@ -25,6 +71,10 @@
       (if (negative? den)
         (cons (- num) (- den))
         (cons num den))))
+
+  (define (numer rat) (car rat))
+
+  (define (denom rat) (cdr rat))
 
   (println (make-rat 6 12))
   (newline))
@@ -149,7 +199,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.5 ()
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken add1))
   (title "ex2.5")
 
   ; Here's a proof by construction:
@@ -181,7 +232,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.6 ()
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken add1))
   (title "ex2.6")
 
   (define church-zero (lambda (f) (lambda (x) x)))
@@ -284,7 +336,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.10 (mul-interval div-interval)
-  (import scheme chicken debug ex2.7)
+  (import scheme debug ex2.7)
+  (import (only chicken error))
   (title "ex2.10")
 
   (define (mul-interval x y)
@@ -922,7 +975,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.33 (accumulate)
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken add1))
   (import (only ex2.21 square))
   (title "ex2.33")
 
@@ -1039,7 +1093,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.38 ()
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken foldr foldl))
   (title "ex2.38")
 
   (println (foldr / 1 (list 1 2 3)))      ; 3/2
@@ -1057,7 +1112,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.39 ()
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken foldr foldl))
   (title "ex2.39")
 
   (define (reverse-fold-right sequence)
@@ -1134,7 +1190,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.41 ()
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken sub1))
   (import (only ex2.40 filter enumerate-interval flatmap unique-pairs))
   (title "ex2.41")
 
@@ -1703,7 +1760,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.56 (deriv =number?)
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken error))
   (title "ex2.56")
 
   (define (variable? x) (symbol? x))
@@ -1812,7 +1870,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.58 ()
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken foldr))
   (import (only ex2.40 filter))
   (import (only ex2.56 =number?))
   (title "ex2.58")
@@ -2096,7 +2155,8 @@
 
 (module ex2.67 (sample-tree right-branch left-branch symbols leaf?
                 make-code-tree make-leaf weight)
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken error))
   (title "ex2.67")
 
   (define (make-leaf symbol weight)
@@ -2164,7 +2224,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.68 (encode)
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken error))
   (import (only ex2.60 element-of-set?))
   (import (only ex2.67 sample-tree right-branch left-branch symbols leaf?))
   (title "ex2.68")
@@ -2345,10 +2406,11 @@
 ;; ex2.73                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.73 ()
+(module ex2.73 (attach-tag type-tag contents)
   (import scheme debug)
   (import (only ex2.56 =number?))
   (title "ex2.73")
+  (reset-proc-table)
 
   ; Part (a):
   ;
@@ -2362,20 +2424,6 @@
   ; variables.
   ;
   ; Part (b):
-
-  (define table '())
-
-  (define (put op type proc)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (set-cdr! pair proc)
-        (set! table (cons (cons (cons op type) proc) table)))))
-
-  (define (get op type)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (cdr pair)
-        #f)))
 
   (define (attach-tag tag ex) (cons tag ex))
   (define (type-tag ex) (car ex))
@@ -2483,10 +2531,10 @@
 (module ex2.74 ()
   (import scheme debug)
   (title "ex2.74")
+  (reset-proc-table)
 
   (define (record-division record) '())
   (define (file-division file) '())
-  (define (get op type) '())
 
   ; Part (a):
 
@@ -2523,7 +2571,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex2.75 ()
-  (import scheme chicken debug)
+  (import scheme debug)
+  (import (only chicken error))
   (title "ex2.75")
 
   (define (make-from-mag-ang r a)
@@ -2605,36 +2654,23 @@
   (define (contents obj)
     (if (number? obj)
       obj
-      (cadr obj)))
+      (cdr obj)))
 
   (define (attach-tag tag obj)
     (if (eq? tag 'scheme-number)
       obj
-      (list tag obj))))
+      (cons tag obj))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ex2.79                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.79 (numer denom)
+(module ex2.79 ()
   (import scheme debug)
   (import (only ex2.78 type-tag contents))
   (title "ex2.79")
-
-  (define table '())
-
-  (define (put op type proc)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (set-cdr! pair proc)
-        (set! table (cons (cons (cons op type) proc) table)))))
-
-  (define (get op type)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (cdr pair)
-        #f)))
+  (reset-proc-table)
 
   (define (numer rat) (car rat))
   (define (denom rat) (cdr rat))
@@ -2653,7 +2689,7 @@
 
   (install-equ?)
   (define (equ? n1 n2)
-    ((get 'equ? (list (type-tag n1) (type-tag n2))) n1 n2))
+    ((get 'equ? (list (type-tag n1) (type-tag n2))) (contents n1) (contents n2)))
 
   (println (equ? 1 2))
   (println (equ? 1 1))
@@ -2667,40 +2703,32 @@
 
 (module ex2.80 ()
   (import scheme debug)
-  (import (only ex2.78 type-tag))
-  (import (only ex2.79 numer))
+  (import (only ex2.78 attach-tag type-tag contents))
   (title "ex2.80")
+  (reset-proc-table)
 
-  (define table '())
+  (define (install-rat)
+    (define (numer x) (car x))
+    (define (tag x) (attach-tag 'rational x))
+    (put 'make-rat 'rational (lambda (n d) (tag (cons n d))))
+    (put '=zero? 'rational (lambda (n) (zero? (numer n)))))
 
-  (define (put op type proc)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (set-cdr! pair proc)
-        (set! table (cons (cons (cons op type) proc) table)))))
-
-  (define (get op type)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (cdr pair)
-        #f)))
+  (define (make-rat n d)
+    ((get 'make-rat 'rational) n d))
 
   (define (install-=zero?)
-    (put '=zero? 'scheme-number
-      (lambda (n) (zero? n)))
-
-    (put '=zero? 'rational
-      (lambda (n) (zero? (numer n))))
-
+    (put '=zero? 'scheme-number (lambda (n) (zero? n)))
     (put '=zero? 'complex
       (lambda (n) (and (zero? (real-part n)) (zero? (imag-part n))))))
 
-  (define (=zero? n)
-    ((get '=zero? (type-tag n)) n))
+  (install-proc =zero?)
 
+  (install-rat)
   (install-=zero?)
   (println (=zero? 2))
   (println (=zero? 0))
+  (println (=zero? (make-rat 3 6)))
+  (println (=zero? (make-rat 0 5)))
 
   (newline))
 
@@ -2712,11 +2740,26 @@
 (module ex2.81 ()
   (import scheme debug)
   (import (only chicken error))
-  (import (only ex2.78 type-tag contents))
+  (import (only ex2.78 attach-tag type-tag contents))
   (title "ex2.81")
+  (reset-proc-table)
+  (reset-coercion-table)
+
+  (define (scheme-number->scheme-number n) n)
+  (define (complex->complex z) z)
+
+  (put-coercion 'scheme-number 'scheme-number
+                scheme-number->scheme-number)
+  (put-coercion 'complex 'complex complex->complex)
 
   ; Part (a):
-  ;
+
+  (define (tag x) (attach-tag '** x))
+  (define (exponential x y) (apply-generic 'exponential x y))
+
+  (put 'exponential '(scheme-number scheme-number)
+      (lambda (x y) (tag (expt x y)))) ; using primitive expt
+
   ; Calling exp with two complex numbers in this case will never return
   ; (apply-generic will go into infinite recursion).
   ;
@@ -2729,10 +2772,6 @@
   ; error.
   ;
   ; Part (c):
-
-  (define (get op type) '())
-
-  (define (get-coercion type1 type2) '())
 
   (define (apply-generic op . args)
     (let ((type-tags (map type-tag args)))
@@ -2767,10 +2806,8 @@
   (import (only chicken foldr error))
   (import (only ex2.78 type-tag contents))
   (title "ex2.82")
-
-  (define (get op type) '())
-
-  (define (get-coercion type1 type2) '())
+  (reset-proc-table)
+  (reset-coercion-table)
 
   (define (apply-generic op . args)
     (define (coerce-args-to-argn args argn)
@@ -2814,71 +2851,90 @@
 ;; ex2.83                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.83 (raise)
+(module ex2.83 (make-int make-rat make-real make-complex install-raise raise)
   (import scheme debug)
-  (import (only ex2.78 type-tag contents))
+  (import (only ex2.1 numer denom))
+  (import (only ex2.73 type-tag contents))
   (title "ex2.83")
+  (reset-proc-table)
 
-  (define table '())
+  (define (make-int n)
+    (cons 'integer n))
 
-  (define (put op type proc)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (set-cdr! pair proc)
-        (set! table (cons (cons (cons op type) proc) table)))))
+  (define (make-rat n d)
+    (cons 'rational (let ((g (gcd n d))) (cons (/ n g) (/ d g)))))
 
-  (define (get op type)
-    (let ((pair (assoc (cons op type) table)))
-      (if pair
-        (cdr pair)
-        #f)))
+  (define (make-real n)
+    (cons 'real n))
 
-  (define (make-rat n d) '())
-  (define (numer rat) '())
-  (define (denom rat) '())
-
-  (define (make-rectangular x y) (cons x y))
+  (define (make-complex x y)
+    (cons 'complex (cons x y)))
 
   (define (install-raise)
     (define (raise-integer obj)
       (make-rat obj 1))
 
     (define (raise-rat obj)
-      (/ (numer obj) (denom obj)))
+      (make-real (/ (numer obj) (denom obj))))
 
     (define (raise-real obj)
-      (make-rectangular obj 0))
+      (make-complex obj 0))
 
     (put 'raise 'integer raise-integer)
     (put 'raise 'rational raise-rat)
     (put 'raise 'real raise-real))
 
-  (define (raise obj)
-    ((get 'raise (type-tag obj)) (contents obj))))
+  (install-raise)
+  (install-proc raise)
+
+  (println (raise (make-int 2))) ; (2 . 1)
+  (println (raise (make-rat 1 2))) ; 0.5
+  (println (raise (make-real 5.4))) ; (5.4 . 0)
+  (newline))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ex2.84                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.84 ()
-  (import scheme chicken debug)
-  (import (only ex2.78 type-tag contents))
-  (import (only ex2.83 raise))
+(module ex2.84 (install-add add)
+  (import scheme debug)
+  (import (only chicken foldr error))
+  (import (only ex2.1 numer denom))
+  (import (only ex2.73 type-tag contents))
+  (import (only ex2.83 make-int make-rat make-real make-complex install-raise
+                       raise))
   (title "ex2.84")
+  (reset-proc-table)
+  (install-raise)
+
+  (define (install-add)
+    (define (real x) (car x))
+    (define (imag x) (cdr x))
+
+    (put 'add '(integer integer) (lambda (x y) (make-int (+ x y))))
+    (put 'add '(rational rational) (lambda (x y) (make-rat (+ (* (numer x) (denom y))
+                                                              (* (numer y) (denom x)))
+                                                           (* (denom x) (denom y)))))
+    (put 'add '(real real) (lambda (x y) (make-real (+ x y))))
+    (put 'add '(complex complex) (lambda (x y) (make-complex (+ (real x) (real y))
+                                                             (+ (imag x) (imag y))))))
+  (install-add)
+  (define (add n1 n2)
+    ((get 'add (list (type-tag n1) (type-tag n2))) n1 n2))
 
   (define (apply-generic op . args)
     (define (higher-type? high low)
       (let ((type-hierarchy '(integer rational real complex)))
         (< (length (memq high type-hierarchy))
-          (length (memq low type-hierarchy)))))
+           (length (memq low type-hierarchy)))))
 
     (define (get-highest-type arg-types)
       (foldr (lambda (t1 t2) (if (higher-type? t1 t2) t1 t2))
                   'integer arg-types))
 
     (define (successive-raise arg type)
-      (if (= (type-tag arg) type)
+      (if (eq? (type-tag arg) type)
         arg
         (successive-raise (raise arg) type)))
 
@@ -2889,11 +2945,85 @@
            (proc (get op (map type-tag new-args))))
         (if proc
           (apply proc (map contents new-args))
-          (error "No method for these types" (list op type-tags))))))
+          (error "No method for these types" (list op type-tags)))))
+
+  (println (apply-generic 'add (make-int 1) (make-rat 3 6)))
+  (println (apply-generic 'add (make-int 4) (make-real 5.4)))
+  (println (apply-generic 'add (make-int 2) (make-complex 5 4)))
+  (println (apply-generic 'add (make-complex 5 4) (make-rat 2 5)))
+  (newline))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ex2.85                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(module ex2.85 ()
+  (import scheme debug)
+  (import (only chicken foldr error))
+  (import (only ex2.1 numer denom))
+  (import (only ex2.73 type-tag contents))
+  (import (only ex2.83 make-int make-rat make-real make-complex install-raise raise))
+  (import (only ex2.84 install-add add))
+  (title "ex2.85")
+  (reset-proc-table)
+  (install-raise)
+  (install-add)
 
+  (define (real x) (car x))
+  (define (imag x) (cdr x))
+
+  (define (install-project)
+    (put 'project 'rational (lambda (x) (make-int (numer x))))
+    (put 'project 'real (lambda (x) (make-rat (inexact->exact (round x)) 1)))
+    (put 'project 'complex (lambda (x) (make-real (real x)))))
+
+  (install-project)
+  (install-proc project)
+
+  (define (install-equ?)
+    (put 'equ? '(integer integer) (lambda (x y) (= x y)))
+    (put 'equ? '(rational rational) (lambda (x y) (and (= (numer x) (numer y))
+                                                       (= (denom x) (denom y)))))
+    (put 'equ? '(real real) (lambda (x y) (= x y)))
+    (put 'equ? '(complex complex) (lambda (x y) (and (= (real x) (real y))
+                                                     (= (imag x) (imag y))))))
+
+  (install-equ?)
+  (define (equ? n1 n2)
+    ((get 'equ? (list (type-tag n1) (type-tag n2))) (contents n1) (contents n2)))
+
+  (define (drop x)
+    (if (eq? (type-tag x) 'integer)
+      x
+      (let ((projection (project x)))
+        (if (equ? (raise projection) x) (drop projection) x))))
+
+  (define (apply-generic op . args)
+    (define (higher-type? high low)
+      (let ((type-hierarchy '(integer rational real complex)))
+        (< (length (memq high type-hierarchy))
+           (length (memq low type-hierarchy)))))
+
+    (define (get-highest-type arg-types)
+      (foldr (lambda (t1 t2) (if (higher-type? t1 t2) t1 t2))
+                  'integer arg-types))
+
+    (define (successive-raise arg type)
+      (if (eq? (type-tag arg) type)
+        arg
+        (successive-raise (raise arg) type)))
+
+    (let* ((type-tags (map type-tag args))
+           (highest-type (get-highest-type type-tags))
+           (new-args (map (lambda (arg) (successive-raise arg highest-type))
+                          args))
+           (proc (get op (map type-tag new-args))))
+        (if proc
+          (drop (apply proc (map contents new-args)))
+          (error "No method for these types" (list op type-tags)))))
+
+  (println (apply-generic 'add (make-int 1) (make-rat 2 1)))
+  (println (apply-generic 'add (make-int 4) (make-real 5.0)))
+  (println (apply-generic 'add (make-complex 5 0) (make-rat 2 5)))
+  (newline))
