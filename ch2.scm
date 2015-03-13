@@ -3018,7 +3018,6 @@
                                                      (equ? (imag x) (imag y))))))
 
   (install-equ?)
-  (install-proc2 equ?)
 
   (define (drop x)
     (if (eq? (type-tag x) 'integer)
@@ -3032,11 +3031,17 @@
            (new-args (map (lambda (arg) (successive-raise arg highest-type)) args))
            (proc (get op (map type-tag new-args))))
         (if proc
-          (drop (apply proc (map contents new-args)))
+          (let ((result (apply proc (map contents new-args))))
+            (if (or (number? result) (pair? result))
+              (drop result)
+              result))
           (error "No method for these types" (list op type-tags)))))
 
   (define (add x y)
     (apply-generic 'add x y))
+
+  (define (equ? x y)
+    (apply-generic 'equ? x y))
 
   (println (add 1 (make-rat 2 1))) ; 3
   (println (add 4 5.0)) ; 9
@@ -3053,14 +3058,50 @@
   (import (only ex2.1 numer denom))
   (import (only ex2.83 type-tag contents make-rat make-rect
                        make-pol make-complex install-raise))
-  (import (only ex2.84 install-complex real imag mag ang))
   (import (only ex2.85 install-project install-equ? apply-generic))
   (title "ex2.86")
   (reset-proc-table)
   (install-raise)
-  (install-complex)
   (install-project)
   (install-equ?)
+
+  (define (install-complex)
+    (define (square x) (mul x x))
+
+    (put 'square-root 'integer (lambda (x) (sqrt x)))
+    (put 'square-root 'rational (lambda (x) (sqrt (div (numer x) (denom x)))))
+    (put 'square-root 'real (lambda (x) (sqrt x)))
+
+    (put 'sine 'integer (lambda (x) (sin x)))
+    (put 'sine 'rational (lambda (x) (sin (div (numer x) (denom x)))))
+    (put 'sine 'real (lambda (x) (sin x)))
+
+    (put 'cosine 'integer (lambda (x) (cos x)))
+    (put 'cosine 'rational (lambda (x) (cos (div (numer x) (denom x)))))
+    (put 'cosine 'real (lambda (x) (cos x)))
+
+    (put 'arctan 'integer (lambda (x) (atan x)))
+    (put 'arctan 'rational (lambda (x) (atan (div (numer x) (denom x)))))
+    (put 'arctan 'real (lambda (x) (atan x)))
+
+    (put 'real 'rect (lambda (x) (car x)))
+    (put 'real 'pol (lambda (x) (mul (car x) (cosine (cdr x)))))
+    (put 'imag 'rect (lambda (x) (cdr x)))
+    (put 'imag 'pol (lambda (x) (mul (car x) (sine (cdr x)))))
+    (put 'mag 'rect (lambda (x) (square-root (add (square (car x)) (square (cdr x))))))
+    (put 'mag 'pol (lambda (x) (car x)))
+    (put 'ang 'rect (lambda (x) (arctan (div (cdr x) (car x)))))
+    (put 'ang 'pol (lambda (x) (cdr x))))
+
+  (install-complex)
+  (install-proc square-root)
+  (install-proc sine)
+  (install-proc cosine)
+  (install-proc arctan)
+  (install-proc real)
+  (install-proc imag)
+  (install-proc mag)
+  (install-proc ang)
 
   (define (install-add)
     (put 'add '(integer integer) (lambda (x y) (+ x y)))
@@ -3094,7 +3135,7 @@
                                                (add (ang x) (ang y)))))))
 
   (define (install-div)
-    (put 'div '(integer integer) (lambda (x y) (inexact->exact (floor (/ x y)))))
+    (put 'div '(integer integer) (lambda (x y) (/ x y)))
     (put 'div '(rational rational) (lambda (x y)
                                      (make-rat (mul (numer x) (denom y))
                                                (mul (denom x) (numer y)))))
@@ -3121,6 +3162,8 @@
   (define (div x y)
     (apply-generic 'div x y))
 
-  (println (add (make-complex (make-rect (make-rat 3 4) 4)) (make-rat 2 5))) ; (complex rect 1.15 . 4)
+  (println (mul (make-complex (make-rect (make-rat 3 4) 4)) (make-rat 2 5))) ; (complex pol 1.62788205960997 . 1.3854483767992)
   (println (add (make-complex (make-rect 3 4)) (make-rat 2 5))) ; (complex rect 3.4 . 4)
   (newline))
+
+
