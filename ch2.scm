@@ -2989,7 +2989,7 @@
 
 (module ex2.85 (install-project install-equ? apply-generic add)
   (import scheme debug)
-  (import (only chicken foldr error))
+  (import (only chicken error))
   (import (only ex2.1 numer denom))
   (import (only ex2.83 type-tag contents make-rat make-rect
                        make-complex install-raise raise))
@@ -3166,4 +3166,573 @@
   (println (add (make-complex (make-rect 3 4)) (make-rat 2 5))) ; (complex rect 3.4 . 4)
   (newline))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.87                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.87 (make-poly variable term-list variable? same-variable? make-term
+                order coeff empty-termlist? the-empty-termlist first-term
+                rest-terms adjoin-term install-polynomial-package =zero? add mul
+                make-polynomial add-terms mul-term-by-all-terms mul-terms)
+  (import scheme debug)
+  (import (only chicken foldr error))
+  (import (only ex2.78 type-tag contents attach-tag))
+  (title "ex2.87")
+
+  (define (make-poly variable term-list)
+    (list variable term-list))
+  (define (variable p) (car p))
+  (define (term-list p) (cadr p))
+  (define (variable? x) (symbol? x))
+  (define (same-variable? v1 v2)
+    (and (variable? v1) (variable? v2) (eq? v1 v2)))
+
+  (define (make-term order coeff) (list order coeff))
+  (define (order term) (car term))
+  (define (coeff term) (cadr term))
+
+  (define (empty-termlist? l) (null? l))
+  (define (the-empty-termlist) '())
+  (define (first-term term-list) (car term-list))
+  (define (rest-terms term-list) (cdr term-list))
+
+  (define (adjoin-term term term-list)
+    (cond ((empty-termlist? term-list) (list term))
+          ((=zero? (coeff term)) term-list)
+          (else
+            (let ((t (first-term term-list)))
+              (cond ((> (order term) (order t))
+                      (cons term term-list))
+                    ((< (order term) (order t))
+                      (cons t (adjoin-term term (rest-terms term-list))))
+                    (else
+                      (cons (make-term (order term)
+                                       (add (coeff term) (coeff t)))
+                            (rest-terms term-list))))))))
+
+  (define (add-terms L1 L2)
+    (cond ((empty-termlist? L1) L2)
+          ((empty-termlist? L2) L1)
+          (else
+          (let ((t1 (first-term L1)) (t2 (first-term L2)))
+            (cond ((> (order t1) (order t2))
+                    (adjoin-term t1 (add-terms (rest-terms L1) L2)))
+                  ((< (order t1) (order t2))
+                    (adjoin-term t2 (add-terms L1 (rest-terms L2))))
+                  (else
+                    (adjoin-term
+                      (make-term (order t1) (add (coeff t1) (coeff t2)))
+                      (add-terms (rest-terms L1) (rest-terms L2)))))))))
+
+  (define (mul-term-by-all-terms t1 L)
+    (if (empty-termlist? L)
+        (the-empty-termlist)
+        (let ((t2 (first-term L)))
+          (adjoin-term
+          (make-term (+ (order t1) (order t2)) (mul (coeff t1) (coeff t2)))
+          (mul-term-by-all-terms t1 (rest-terms L))))))
+
+  (define (mul-terms L1 L2)
+    (if (empty-termlist? L1)
+        (the-empty-termlist)
+        (add-terms (mul-term-by-all-terms (first-term L1) L2)
+                   (mul-terms (rest-terms L1) L2))))
+
+  (define (install-polynomial-package)
+    ;; internal procedures
+    ;; representation of poly
+      (define (add-poly p1 p2)
+        (if (same-variable? (variable p1) (variable p2))
+            (make-poly (variable p1)
+                       (add-terms (term-list p1) (term-list p2)))
+            (error "Polys not in same var -- ADD-POLY" (list p1 p2))))
+
+      (define (mul-poly p1 p2)
+        (if (same-variable? (variable p1) (variable p2))
+            (make-poly (variable p1)
+                       (mul-terms (term-list p1) (term-list p2)))
+            (error "Polys not in same var -- MUL-POLY" (list p1 p2))))
+
+      ;; interface to rest of the system
+      (define (tag p) (attach-tag 'polynomial p))
+
+      (put '=zero? 'scheme-number
+          (lambda (n) (zero? n)))
+      (put '=zero? 'polynomial
+          (lambda (p) (or (null? (term-list p))
+                          (foldr (lambda (x1 x2) (and x1 x2))
+                                 #t (map (lambda (t) (=zero? (coeff t)))
+                                         (term-list p))))))
+      (put 'add '(scheme-number scheme-number)
+          (lambda (n1 n2) (+ n1 n2)))
+      (put 'add '(polynomial polynomial)
+          (lambda (p1 p2) (tag (add-poly p1 p2))))
+      (put 'mul '(scheme-number scheme-number)
+          (lambda (n1 n2) (* n1 n2)))
+      (put 'mul '(polynomial polynomial)
+          (lambda (p1 p2) (tag (mul-poly p1 p2))))
+      (put 'make 'polynomial
+          (lambda (var terms) (tag (make-poly var terms)))))
+
+  (install-polynomial-package)
+  (install-proc =zero?)
+  (install-proc2 add)
+  (install-proc2 mul)
+  (define (make-polynomial var terms)
+    ((get 'make 'polynomial) var terms))
+
+  (println
+    (add (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                          (adjoin-term (make-term 2 3)
+                                                       (the-empty-termlist))))
+         (make-polynomial 'x (adjoin-term (make-term 2 2)
+                                          (adjoin-term (make-term 1 2)
+                                                       (the-empty-termlist))))))
+
+  (println
+    (mul (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                          (adjoin-term (make-term 2 3)
+                                                       (the-empty-termlist))))
+         (make-polynomial 'x (adjoin-term (make-term 2 2)
+                                          (adjoin-term (make-term 1 2)
+                                                       (the-empty-termlist))))))
+
+  (println
+    (=zero? (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                             (adjoin-term (make-term 2 3)
+                                                          (the-empty-termlist))))))
+
+  (println
+    (=zero? (make-polynomial 'x (the-empty-termlist))))
+
+  (println
+    (=zero? (make-polynomial 'x (adjoin-term (make-term 3 0)
+                                             (adjoin-term (make-term 2 0)
+                                                          (the-empty-termlist))))))
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.88                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.88 (neg-terms)
+  (import scheme debug ex2.87)
+  (import (only chicken error))
+  (import (only ex2.78 type-tag contents attach-tag))
+  (title "ex2.88")
+
+  (install-polynomial-package)
+
+  (define (neg-terms L)
+    (if (empty-termlist? L)
+      (the-empty-termlist)
+      (let ((t (first-term L)) (l (rest-terms L)))
+        (adjoin-term (make-term (order t) (neg (coeff t))) (neg-terms l)))))
+
+  (define (install-neg)
+    (define (neg-poly p)
+      (make-poly (variable p) (neg-terms (term-list p))))
+
+    (define (tag p) (attach-tag 'polynomial p))
+    (put 'neg 'scheme-number (lambda (n) (- n)))
+    (put 'neg 'polynomial (lambda (p) (tag (neg-poly p)))))
+
+  (install-neg)
+  (install-proc neg)
+
+  (define (sub p1 p2)
+    (add p1 (neg p2)))
+
+  (println
+    (sub (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                          (adjoin-term (make-term 2 3)
+                                                       (the-empty-termlist))))
+         (make-polynomial 'x (adjoin-term (make-term 2 2)
+                                          (adjoin-term (make-term 1 2)
+                                                       (the-empty-termlist))))))
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.89                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.89 (zeros first-term adjoin-term install-polynomial-package =zero?
+                add mul)
+  (import scheme debug)
+  (import (only chicken foldr sub1 error))
+  (import (only ex2.78 type-tag contents attach-tag))
+  (import (only ex2.87 make-poly variable term-list variable? same-variable?
+                make-term order coeff empty-termlist? the-empty-termlist
+                rest-terms make-polynomial))
+  (title "ex2.89")
+
+  (define (zeros n init-list)
+    (if (zero? n)
+      init-list
+      (cons 0 (zeros (sub1 n) init-list))))
+
+  (define (first-term term-list)
+    (list (sub1 (length term-list)) (car term-list)))
+
+  (define (adjoin-term term term-list)
+    (cond ((empty-termlist? term-list)
+            (cons (coeff term) (zeros (order term) (the-empty-termlist))))
+          ((=zero? (coeff term)) term-list)
+          (else
+            (let ((t (first-term term-list)))
+              (cond ((> (order term) (order t))
+                      (cons (coeff term) (zeros (sub1 (- (order term) (order t)))
+                                                term-list)))
+                    ((< (order term) (order t))
+                      (cons (coeff t) (adjoin-term term (rest-terms term-list))))
+                    (else
+                      (cons (add (coeff term) (coeff t))
+                            (rest-terms term-list))))))))
+
+  (define (install-polynomial-package)
+    ;; internal procedures
+    ;; representation of poly
+    (define (add-terms L1 L2)
+      (cond ((empty-termlist? L1) L2)
+            ((empty-termlist? L2) L1)
+            (else
+            (let ((t1 (first-term L1)) (t2 (first-term L2)))
+              (cond ((> (order t1) (order t2))
+                      (adjoin-term t1 (add-terms (rest-terms L1) L2)))
+                    ((< (order t1) (order t2))
+                      (adjoin-term t2 (add-terms L1 (rest-terms L2))))
+                    (else
+                      (adjoin-term
+                        (make-term (order t1) (add (coeff t1) (coeff t2)))
+                        (add-terms (rest-terms L1) (rest-terms L2)))))))))
+
+    (define (mul-term-by-all-terms t1 L)
+      (if (empty-termlist? L)
+          (the-empty-termlist)
+          (let ((t2 (first-term L)))
+            (adjoin-term
+            (make-term (+ (order t1) (order t2)) (mul (coeff t1) (coeff t2)))
+            (mul-term-by-all-terms t1 (rest-terms L))))))
+
+    (define (mul-terms L1 L2)
+      (if (empty-termlist? L1)
+          (the-empty-termlist)
+          (add-terms (mul-term-by-all-terms (first-term L1) L2)
+                     (mul-terms (rest-terms L1) L2))))
+
+      (define (add-poly p1 p2)
+        (if (same-variable? (variable p1) (variable p2))
+            (make-poly (variable p1)
+                       (add-terms (term-list p1) (term-list p2)))
+            (error "Polys not in same var -- ADD-POLY" (list p1 p2))))
+
+      (define (mul-poly p1 p2)
+        (if (same-variable? (variable p1) (variable p2))
+            (make-poly (variable p1)
+                       (mul-terms (term-list p1) (term-list p2)))
+            (error "Polys not in same var -- MUL-POLY" (list p1 p2))))
+
+      ;; interface to rest of the system
+      (define (tag p) (attach-tag 'polynomial p))
+
+      (put '=zero? 'scheme-number
+          (lambda (n) (zero? n)))
+      (put '=zero? 'polynomial
+          (lambda (p) (or (null? (term-list p))
+                          (foldr (lambda (x1 x2) (and x1 x2))
+                                 #t (map (lambda (t) (=zero? t)) (term-list p))))))
+      (put 'add '(scheme-number scheme-number)
+          (lambda (n1 n2) (+ n1 n2)))
+      (put 'add '(polynomial polynomial)
+          (lambda (p1 p2) (tag (add-poly p1 p2))))
+      (put 'mul '(scheme-number scheme-number)
+          (lambda (n1 n2) (* n1 n2)))
+      (put 'mul '(polynomial polynomial)
+          (lambda (p1 p2) (tag (mul-poly p1 p2))))
+      (put 'make 'polynomial
+          (lambda (var terms) (tag (make-poly var terms)))))
+
+  (install-polynomial-package)
+  (install-proc =zero?)
+  (install-proc2 add)
+  (install-proc2 mul)
+
+  (println (adjoin-term (make-term 3 4) (adjoin-term (make-term 2 3)
+                                                     (the-empty-termlist))))
+
+  (println
+    (add (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                          (adjoin-term (make-term 2 3)
+                                                       (the-empty-termlist))))
+         (make-polynomial 'x (adjoin-term (make-term 2 2)
+                                          (adjoin-term (make-term 1 2)
+                                                       (the-empty-termlist))))))
+
+  (println
+    (mul (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                          (adjoin-term (make-term 2 3)
+                                                       (the-empty-termlist))))
+         (make-polynomial 'x (adjoin-term (make-term 2 2)
+                                          (adjoin-term (make-term 1 2)
+                                                       (the-empty-termlist))))))
+
+  (println
+    (=zero? (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                             (adjoin-term (make-term 2 3)
+                                                          (the-empty-termlist))))))
+
+  (println
+    (=zero? (make-polynomial 'x (the-empty-termlist))))
+
+  (println
+    (=zero? (make-polynomial 'x (adjoin-term (make-term 3 0)
+                                             (adjoin-term (make-term 2 0)
+                                                          (the-empty-termlist))))))
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.90                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.90 (first-term adjoin-term install-polynomial-package =zero? add mul)
+  (import scheme debug)
+  (import (only chicken foldr sub1 error))
+  (import (only ex2.78 type-tag contents attach-tag))
+  (import (only ex2.87 make-poly variable term-list variable? same-variable?
+                make-term order coeff make-polynomial))
+  (import (only ex2.89 zeros))
+  (title "ex2.90")
+
+  (define (the-empty-termlist tag) (attach-tag tag '()))
+  (define (empty-termlist? term-list) (null? (contents term-list)))
+  (define (rest-terms term-list) (attach-tag (type-tag term-list)
+                                             (cdr (contents term-list))))
+
+  (define (install-term-list-package)
+    (define (dense-first-term term-list)
+      (list (sub1 (length term-list)) (car term-list)))
+
+    (define (dense-adjoin-term term term-list)
+      (cond ((null? term-list)
+              (cons (coeff term) (zeros (order term) '())))
+            ((=zero? (coeff term)) term-list)
+            (else
+              (let ((t (dense-first-term term-list)))
+                (cond ((> (order term) (order t))
+                        (cons (coeff term) (zeros (sub1 (- (order term) (order t)))
+                                                  term-list)))
+                      ((< (order term) (order t))
+                        (cons (coeff t) (dense-adjoin-term term (cdr term-list))))
+                      (else
+                        (cons (add (coeff term) (coeff t))
+                              (cdr term-list))))))))
+
+    (define (sparse-first-term term-list) (car term-list))
+
+    (define (sparse-adjoin-term term term-list)
+      (cond ((null? term-list) (list term))
+            ((=zero? (coeff term)) term-list)
+            (else
+              (let ((t (sparse-first-term term-list)))
+                (cond ((> (order term) (order t))
+                        (cons term term-list))
+                      ((< (order term) (order t))
+                        (cons t (sparse-adjoin-term term (cdr term-list))))
+                      (else
+                        (cons (make-term (order term)
+                                         (add (coeff term) (coeff t)))
+                              (cdr term-list))))))))
+
+    (define (tag-dense arg) (attach-tag 'dense arg))
+    (define (tag-sparse arg) (attach-tag 'sparse arg))
+
+    (put 'first-term 'dense
+         (lambda (term-list) (dense-first-term term-list)))
+    (put 'adjoin-term 'dense
+         (lambda (term term-list) (tag-dense (dense-adjoin-term term term-list))))
+    (put 'first-term 'sparse
+         (lambda (term-list) (sparse-first-term term-list)))
+    (put 'adjoin-term 'sparse
+         (lambda (term term-list) (tag-sparse (sparse-adjoin-term term term-list)))))
+
+  (install-term-list-package)
+  (install-proc first-term)
+  (define (adjoin-term term term-list)
+    ((get 'adjoin-term (type-tag term-list)) term (contents term-list)))
+
+  (define (install-polynomial-package)
+    ;; internal procedures
+    ;; representation of poly
+    (define (add-terms L1 L2)
+      (cond ((empty-termlist? L1) L2)
+            ((empty-termlist? L2) L1)
+            (else
+            (let ((t1 (first-term L1)) (t2 (first-term L2)))
+              (cond ((> (order t1) (order t2))
+                      (adjoin-term t1 (add-terms (rest-terms L1) L2)))
+                    ((< (order t1) (order t2))
+                      (adjoin-term t2 (add-terms L1 (rest-terms L2))))
+                    (else
+                      (adjoin-term
+                        (make-term (order t1) (add (coeff t1) (coeff t2)))
+                        (add-terms (rest-terms L1) (rest-terms L2)))))))))
+
+    (define (mul-term-by-all-terms t1 L)
+      (if (empty-termlist? L)
+          (the-empty-termlist (type-tag L))
+          (let ((t2 (first-term L)))
+            (adjoin-term
+            (make-term (+ (order t1) (order t2)) (mul (coeff t1) (coeff t2)))
+            (mul-term-by-all-terms t1 (rest-terms L))))))
+
+    (define (mul-terms L1 L2)
+      (if (eq? (type-tag L1) (type-tag L2))
+        (if (empty-termlist? L1)
+            (the-empty-termlist (type-tag L1))
+            (add-terms (mul-term-by-all-terms (first-term L1) L2)
+                       (mul-terms (rest-terms L1) L2)))
+        (error "Term lists of different types -- MUL-TERMS" (list L1 L2))))
+
+    (define (add-poly p1 p2)
+      (if (same-variable? (variable p1) (variable p2))
+          (make-poly (variable p1)
+                     (add-terms (term-list p1) (term-list p2)))
+          (error "Polys not in same var -- ADD-POLY" (list p1 p2))))
+
+    (define (mul-poly p1 p2)
+      (if (same-variable? (variable p1) (variable p2))
+          (make-poly (variable p1)
+                     (mul-terms (term-list p1) (term-list p2)))
+          (error "Polys not in same var -- MUL-POLY" (list p1 p2))))
+
+    ;; interface to rest of the system
+    (define (tag p) (attach-tag 'polynomial p))
+
+    (put '=zero? 'scheme-number
+        (lambda (n) (zero? n)))
+    (put '=zero? 'polynomial
+        (lambda (p) (let ((l (term-list p)))
+                      (or (equal? l (the-empty-termlist (type-tag l)))
+                          (let ((f (first-term l)) (r (rest-terms l)))
+                            (and (=zero? (coeff f)) (=zero? (make-polynomial (variable p) r))))))))
+    (put 'add '(scheme-number scheme-number)
+        (lambda (n1 n2) (+ n1 n2)))
+    (put 'add '(polynomial polynomial)
+        (lambda (p1 p2) (tag (add-poly p1 p2))))
+    (put 'mul '(scheme-number scheme-number)
+        (lambda (n1 n2) (* n1 n2)))
+    (put 'mul '(polynomial polynomial)
+        (lambda (p1 p2) (tag (mul-poly p1 p2))))
+    (put 'make 'polynomial
+        (lambda (var terms) (tag (make-poly var terms)))))
+
+  (install-polynomial-package)
+  (install-proc =zero?)
+  (install-proc2 add)
+  (install-proc2 mul)
+
+  (println (adjoin-term (make-term 3 4) (adjoin-term (make-term 2 3)
+                                                     (the-empty-termlist 'dense))))
+  (println (adjoin-term (make-term 3 4) (adjoin-term (make-term 2 3)
+                                                     (the-empty-termlist 'sparse))))
+
+  (println
+    (add (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                          (adjoin-term (make-term 2 3)
+                                                       (the-empty-termlist 'dense))))
+         (make-polynomial 'x (adjoin-term (make-term 2 2)
+                                          (adjoin-term (make-term 1 2)
+                                                       (the-empty-termlist 'dense))))))
+
+  (println
+    (mul (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                          (adjoin-term (make-term 2 3)
+                                                       (the-empty-termlist 'sparse))))
+         (make-polynomial 'x (adjoin-term (make-term 2 2)
+                                          (adjoin-term (make-term 1 2)
+                                                       (the-empty-termlist 'sparse))))))
+
+  (println
+    (=zero? (make-polynomial 'x (adjoin-term (make-term 3 4)
+                                             (adjoin-term (make-term 2 3)
+                                                          (the-empty-termlist 'dense))))))
+
+  (println
+    (=zero? (make-polynomial 'x (the-empty-termlist 'sparse))))
+
+  (println
+    (=zero? (make-polynomial 'x (adjoin-term (make-term 3 0)
+                                             (adjoin-term (make-term 2 0)
+                                                          (the-empty-termlist 'dense))))))
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.91                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.91 (first-term adjoin-term install-polynomial-package =zero? add mul)
+  (import scheme debug ex2.87 ex2.88)
+  (import (only chicken sub1 error))
+  (import (only ex2.78 type-tag contents attach-tag))
+  (import (only ex2.89 zeros))
+  (title "ex2.90")
+
+  (install-polynomial-package)
+
+  (define (install-div)
+    (define (sub-terms L1 L2)
+      (add-terms L1 (neg-terms L2)))
+
+    (define (div-terms L1 L2)
+      (if (empty-termlist? L1)
+          (list (the-empty-termlist) (the-empty-termlist))
+          (let ((t1 (first-term L1))
+                (t2 (first-term L2)))
+            (if (> (order t2) (order t1))
+                (list (the-empty-termlist) L1)
+                (let* ((new-c (div (coeff t1) (coeff t2)))
+                       (new-o (- (order t1) (order t2)))
+                       (term1 (make-term new-o new-c)))
+                  (let ((rest-of-result
+                          (div-terms
+                            (sub-terms L1 (mul-term-by-all-terms term1 L2)) L2)))
+                    (list (adjoin-term term1 (car rest-of-result))
+                          (cadr rest-of-result))))))))
+
+    (define (div-poly p1 p2)
+      (if (same-variable? (variable p1) (variable p2))
+          (let* ((result (div-terms (term-list p1) (term-list p2)))
+                 (quot (car result)) (rem (cadr result)))
+            (list (make-poly (variable p1) quot)
+                  (make-poly (variable p1) rem)))
+          (error "Polys not in same var -- DIV-POLY" (list p1 p2))))
+
+    (define (tag p) (attach-tag 'polynomial p))
+
+    (put 'div '(scheme-number scheme-number) (lambda (n1 n2) (/ n1 n2)))
+    (put 'div '(polynomial polynomial)
+         (lambda (p1 p2)
+           (let ((result (div-poly p1 p2)))
+             (list (tag (car result)) (tag (cadr result)))))))
+
+  (install-div)
+  (install-proc2 div)
+
+  (println
+    (div (make-polynomial 'x (adjoin-term (make-term 2 4)
+                                          (adjoin-term (make-term 1 3)
+                                                       (the-empty-termlist))))
+         (make-polynomial 'x (adjoin-term (make-term 1 2)
+                                          (adjoin-term (make-term 0 2)
+                                                       (the-empty-termlist))))))
+
+  (newline))
+
+
+;; Will skip the rest of exercises in this section.
 
