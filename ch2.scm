@@ -3179,6 +3179,7 @@
   (import (only chicken foldr error))
   (import (only ex2.78 type-tag contents attach-tag))
   (title "ex2.87")
+  (reset-proc-table)
 
   (define (make-poly variable term-list)
     (list variable term-list))
@@ -3317,11 +3318,12 @@
 ;; ex2.88                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.88 (neg-terms)
+(module ex2.88 (neg-terms neg sub install-neg)
   (import scheme debug ex2.87)
   (import (only chicken error))
   (import (only ex2.78 type-tag contents attach-tag))
   (title "ex2.88")
+  (reset-proc-table)
 
   (install-polynomial-package)
 
@@ -3368,6 +3370,7 @@
                 make-term order coeff empty-termlist? the-empty-termlist
                 rest-terms make-polynomial))
   (title "ex2.89")
+  (reset-proc-table)
 
   (define (zeros n init-list)
     (if (zero? n)
@@ -3506,6 +3509,7 @@
                 make-term order coeff make-polynomial))
   (import (only ex2.89 zeros))
   (title "ex2.90")
+  (reset-proc-table)
 
   (define (the-empty-termlist tag) (attach-tag tag '()))
   (define (empty-termlist? term-list) (null? (contents term-list)))
@@ -3675,35 +3679,42 @@
 ;; ex2.91                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex2.91 (first-term adjoin-term install-polynomial-package =zero? add mul)
+(module ex2.91 (install-div div div-terms =zero-termlist?)
   (import scheme debug ex2.87 ex2.88)
-  (import (only chicken sub1 error))
+  (import (only chicken foldr error))
   (import (only ex2.78 type-tag contents attach-tag))
   (import (only ex2.89 zeros))
-  (title "ex2.90")
+  (title "ex2.91")
+  (reset-proc-table)
 
   (install-polynomial-package)
+  (install-neg)
+
+  (define (sub-terms L1 L2)
+    (add-terms L1 (neg-terms L2)))
+
+  (define (=zero-termlist? L)
+    (or (empty-termlist? L)
+        (foldr (lambda (x1 x2) (and x1 x2)) #t
+               (map (lambda (t) (=zero? (coeff t))) L))))
+
+  (define (div-terms L1 L2)
+    (if (=zero-termlist? L1)
+        (list (the-empty-termlist) (the-empty-termlist))
+        (let ((t1 (first-term L1))
+              (t2 (first-term L2)))
+          (if (> (order t2) (order t1))
+              (list (the-empty-termlist) L1)
+              (let* ((new-c (div (coeff t1) (coeff t2)))
+                     (new-o (- (order t1) (order t2)))
+                     (term1 (make-term new-o new-c)))
+                (let ((rest-of-result
+                        (div-terms
+                          (sub-terms L1 (mul-term-by-all-terms term1 L2)) L2)))
+                  (list (adjoin-term term1 (car rest-of-result))
+                        (cadr rest-of-result))))))))
 
   (define (install-div)
-    (define (sub-terms L1 L2)
-      (add-terms L1 (neg-terms L2)))
-
-    (define (div-terms L1 L2)
-      (if (empty-termlist? L1)
-          (list (the-empty-termlist) (the-empty-termlist))
-          (let ((t1 (first-term L1))
-                (t2 (first-term L2)))
-            (if (> (order t2) (order t1))
-                (list (the-empty-termlist) L1)
-                (let* ((new-c (div (coeff t1) (coeff t2)))
-                       (new-o (- (order t1) (order t2)))
-                       (term1 (make-term new-o new-c)))
-                  (let ((rest-of-result
-                          (div-terms
-                            (sub-terms L1 (mul-term-by-all-terms term1 L2)) L2)))
-                    (list (adjoin-term term1 (car rest-of-result))
-                          (cadr rest-of-result))))))))
-
     (define (div-poly p1 p2)
       (if (same-variable? (variable p1) (variable p2))
           (let* ((result (div-terms (term-list p1) (term-list p2)))
@@ -3734,5 +3745,291 @@
   (newline))
 
 
-;; Will skip the rest of exercises in this section.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.92 (incomplete)                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Will skip this exercise
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.93                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.93 (install-rat numer denom make-rational)
+  (import scheme debug ex2.78 ex2.87 ex2.88)
+  (title "ex2.93")
+  (reset-proc-table)
+
+  (install-polynomial-package)
+  (install-neg)
+
+  (define (install-rat)
+    (define (make-rat n d) (list n d))
+    (define (numer-local r) (car r))
+    (define (denom-local r) (cadr r))
+
+    (define (tag x) (attach-tag 'rational x))
+    (put 'make 'rational (lambda (n d) (tag (make-rat n d))))
+    (put 'numer 'rational (lambda (r) (numer-local r)))
+    (put 'denom 'rational (lambda (r) (denom-local r)))
+    (put 'add '(rational rational)
+         (lambda (r1 r2)
+           (tag (make-rat (add (mul (numer-local r1) (denom-local r2))
+                               (mul (numer-local r2) (denom-local r1)))
+                          (mul (denom-local r1) (denom-local r2))))))
+    (put 'mul '(rational rational)
+         (lambda (r1 r2)
+           (tag (make-rat (mul (numer-local r1) (numer-local r2))
+                          (mul (denom-local r1) (denom-local r2)))))))
+
+  (install-rat)
+  (install-proc numer)
+  (install-proc denom)
+
+  (define (make-rational n d)
+    ((get 'make 'rational) n d))
+
+  (define p1 (make-polynomial 'x '((2 1)(0 1))))
+  (define p2 (make-polynomial 'x '((3 1)(0 1))))
+  (define rf (make-rational p2 p1))
+
+  (println rf)
+  (println (add rf rf))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.94                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.94 (install-gcd greatest-common-divisor)
+  (import scheme debug ex2.78 ex2.87 ex2.88 ex2.91)
+  (import (only chicken foldr error))
+  (title "ex2.94")
+  (reset-proc-table)
+
+  (install-polynomial-package)
+  (install-neg)
+  (install-div)
+
+  (define (install-gcd)
+    (define (remainder-terms L1 L2)
+      (cadr (div-terms L1 L2)))
+
+    (define (gcd-terms L1 L2)
+      (if (=zero-termlist? L2) L1 (gcd-terms L2 (remainder-terms L1 L2))))
+
+    (define (gcd-poly p1 p2)
+      (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1) (gcd-terms (term-list p1) (term-list p2)))
+        (error "Polys not in same var -- GCD-POLY" (list p1 p2))))
+
+    (define (tag x) (attach-tag 'polynomial x))
+    (put 'greatest-common-divisor '(polynomial polynomial)
+         (lambda (p1 p2) (tag (gcd-poly p1 p2))))
+    (put 'greatest-common-divisor '(scheme-number scheme-number) gcd))
+
+  (install-gcd)
+  (install-proc2 greatest-common-divisor)
+
+  (define p1 (make-polynomial 'x '((4 1) (3 -1) (2 -2) (1 2))))
+  (define p2 (make-polynomial 'x '((3 1) (1 -1))))
+  (println (greatest-common-divisor p1 p2))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.95                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.95 (install-gcd)
+  (import scheme debug ex2.78 ex2.87 ex2.88 ex2.91 ex2.94)
+  (import (only chicken foldr error))
+  (title "ex2.95")
+  (reset-proc-table)
+
+  (install-polynomial-package)
+  (install-neg)
+  (install-div)
+  (install-gcd)
+
+  (define p1 (make-polynomial 'x '((2 1) (1 -2) (0 1))))
+  (define p2 (make-polynomial 'x '((2 11) (0 7))))
+  (define p3 (make-polynomial 'x '((1 13) (0 5))))
+  (define q1 (mul p1 p2))
+  (define q2 (mul p1 p3))
+  (println q1)
+  (println q2)
+  (println (greatest-common-divisor q1 q2))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.96                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.96 (order-terms leading-coeff gcd-terms install-gcd gcd-terms2
+                install-gcd2 reduce-coeffs)
+  (import scheme debug ex2.78 ex2.87 ex2.88 ex2.91)
+  (import (only chicken foldr add1 error))
+  (title "ex2.96")
+  (reset-proc-table)
+
+  (install-polynomial-package)
+  (install-neg)
+  (install-div)
+
+  ;; Part (a):
+
+  (define (order-terms L1)
+    (order (first-term L1)))
+
+  (define (leading-coeff L1)
+    (coeff (first-term L1)))
+
+  (define (pseudoremainder-terms L1 L2)
+    (let* ((factor (expt (leading-coeff L2)
+                         (- (add1 (order-terms L1)) (order-terms L2))))
+           (factor-term (make-term 0 factor)))
+      (cadr (div-terms (mul-term-by-all-terms factor-term L1) L2))))
+
+  (define (gcd-terms L1 L2)
+    (if (=zero-termlist? L2) L1 (gcd-terms L2 (pseudoremainder-terms L1 L2))))
+
+  (define (install-gcd)
+    (define (gcd-poly p1 p2)
+      (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1) (gcd-terms (term-list p1) (term-list p2)))
+        (error "Polys not in same var -- GCD-POLY" (list p1 p2))))
+
+    (define (tag x) (attach-tag 'polynomial x))
+    (put 'greatest-common-divisor '(polynomial polynomial)
+         (lambda (p1 p2) (tag (gcd-poly p1 p2))))
+    (put 'greatest-common-divisor '(scheme-number scheme-number) gcd))
+
+  (install-gcd)
+  (install-proc2 greatest-common-divisor)
+
+  (define p1 (make-polynomial 'x '((2 1) (1 -2) (0 1))))
+  (define p2 (make-polynomial 'x '((2 11) (0 7))))
+  (define p3 (make-polynomial 'x '((1 13) (0 5))))
+  (define q1 (mul p1 p2))
+  (define q2 (mul p1 p3))
+  (println p1)
+  (println (greatest-common-divisor q1 q2))
+
+  ;; Part (b):
+
+  (define (reduce-coeffs L)
+    (let* ((coeffs (map coeff L))
+           (coeffs-gcd (foldr gcd (apply min coeffs) coeffs)))
+      (map (lambda (term) (make-term (order term)
+                                     (/ (coeff term) coeffs-gcd))) L)))
+
+  (define (gcd-terms2 L1 L2)
+    (reduce-coeffs (gcd-terms L1 L2)))
+
+  (define (install-gcd2)
+    (define (gcd-poly p1 p2)
+      (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1) (gcd-terms2 (term-list p1) (term-list p2)))
+        (error "Polys not in same var -- GCD-POLY" (list p1 p2))))
+
+    (define (tag x) (attach-tag 'polynomial x))
+    (put 'greatest-common-divisor '(polynomial polynomial)
+         (lambda (p1 p2) (tag (gcd-poly p1 p2)))))
+
+  (install-gcd2)
+
+  (println (greatest-common-divisor q1 q2))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex2.97                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex2.97 (install-gcd)
+  (import scheme debug ex2.78 ex2.87 ex2.88 ex2.91 ex2.93 ex2.96)
+  (import (only chicken foldr add1 error))
+  (title "ex2.97")
+  (reset-proc-table)
+
+  (install-polynomial-package)
+  (install-neg)
+  (install-div)
+  (install-gcd2)
+
+  ;; Parts (a) & (b):
+
+  (define (reduce-terms n d)
+    (let* ((g (gcd-terms2 n d))
+           (g-leading-coeff (leading-coeff g))
+           (o1 (max (order-terms n) (order-terms d)))
+           (o2 (order-terms g))
+           (factor (- (add1 o1) o2))
+           (factor-term (make-term 0 factor))
+           (nn (reduce-coeffs (car (div-terms (mul-term-by-all-terms factor-term n) g))))
+           (dd (reduce-coeffs (car (div-terms (mul-term-by-all-terms factor-term d) g)))))
+      (list nn dd)))
+
+  (define (install-reduce)
+    (define (reduce-poly p1 p2)
+      (if (same-variable? (variable p1) (variable p2))
+          (let* ((result (reduce-terms (term-list p1) (term-list p2))))
+            (list (make-poly (variable p1) (car result))
+                  (make-poly (variable p1) (cadr result))))
+          (error "Polys not in same var -- DIV-POLY" (list p1 p2))))
+
+    (define (reduce-integers n d)
+      (let ((g (gcd n d)))
+        (list (/ n g) (/ d g))))
+
+    (define (tag p) (attach-tag 'polynomial p))
+
+    (put 'reduce '(scheme-number scheme-number) reduce-integers)
+    (put 'reduce '(polynomial polynomial)
+         (lambda (p1 p2)
+           (let ((result (reduce-poly p1 p2)))
+             (list (tag (car result)) (tag (cadr result)))))))
+
+  (install-reduce)
+  (install-proc2 reduce)
+
+  (define (install-rat2)
+    (define (make-rat n d) (reduce n d))
+    (define (numer-local r) (car r))
+    (define (denom-local r) (cadr r))
+
+    (define (tag x) (attach-tag 'rational x))
+    (put 'make 'rational (lambda (n d) (tag (make-rat n d))))
+    (put 'numer 'rational (lambda (r) (numer-local r)))
+    (put 'denom 'rational (lambda (r) (denom-local r)))
+    (put 'add '(rational rational)
+         (lambda (r1 r2)
+           (tag (make-rat (add (mul (numer-local r1) (denom-local r2))
+                               (mul (numer-local r2) (denom-local r1)))
+                          (mul (denom-local r1) (denom-local r2))))))
+    (put 'mul '(rational rational)
+         (lambda (r1 r2)
+           (tag (make-rat (mul (numer-local r1) (numer-local r2))
+                          (mul (denom-local r1) (denom-local r2)))))))
+
+  (install-rat2)
+
+  (define p1 (make-polynomial 'x '((1 1)(0 1))))
+  (define p2 (make-polynomial 'x '((3 1)(0 -1))))
+  (define p3 (make-polynomial 'x '((1 1))))
+  (define p4 (make-polynomial 'x '((2 1)(0 -1))))
+
+  (define rf1 (make-rational p1 p2))
+  (define rf2 (make-rational p3 p4))
+
+  (println (add rf1 rf2))
+
+  (newline))
