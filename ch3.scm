@@ -403,3 +403,386 @@
   (newline))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.9                                                                      ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Version 1:
+;
+;          +-------------------------------------------------------------------+
+;          |                                                                   |
+; global ->|                                                                   |
+;  env     |                                                                   |
+;          +-------------------------------------------------------------------+
+;             ^           ^           ^           ^           ^           ^
+;             |           |           |           |           |           |
+;        +---------+ +---------+ +---------+ +---------+ +---------+ +---------+
+;        |  n : 6  | |  n : 5  | |  n : 4  | |  n : 3  | |  n : 2  | |  n : 1  |
+;        +---------+ +---------+ +---------+ +---------+ +---------+ +---------+
+;        (* n        (* n        (* n        (* n        (* n             1
+;         (factorial  (factorial  (factorial  (factorial  (factorial
+;          (- n 1)))   (- n 1)))   (- n 1)))   (- n 1)))   (- n 1)))
+;
+;
+; Version 2:
+;
+;          +----------------------------------------------------------------------------------------------------------------+
+;          |                                                                                                                |
+; global ->|                                                                                                                |
+;  env     |                                                                                                                |
+;          +----------------------------------------------------------------------------------------------------------------+
+;             ^                ^                   ^                    ^                    ^                    ^  ^  ^
+;             |                |                   |                    |                    |                    |  |  |
+;             |                |                   |                    |                    |                    |  |  +---------+
+;             |                |                   |                    |                    |                    |  |            |
+;             |                |                   |                    |                    |                    |  +---------+  |
+;             |                |                   |                    |                    |                    |            |  |
+;        +---------+ +------------------+ +------------------+ +------------------+ +------------------+ +------------------+  |  |
+;        |  n : 6  | |  product   : 1   | |  product   : 1   | |  product   : 2   | |  product   : 6   | |  product   : 24  |  |  |
+;        +---------+ |  counter   : 1   | |  counter   : 2   | |  counter   : 3   | |  counter   : 4   | |  counter   : 5   |  |  |
+;        (fact-iter  |  max-count : 6   | |  max-count : 6   | |  max-count : 6   | |  max-count : 6   | |  max-count : 6   |  |  |
+;          1 1 n)    +------------------+ +------------------+ +------------------+ +------------------+ +------------------+  |  |
+;                    (fact-iter           (fact-iter           (fact-iter           (fact-iter           (fact-iter            |  |
+;                     (* counter product)  (* counter product)  (* counter product)  (* counter product)  (* counter product)  |  |
+;                     (+ counter 1)        (+ counter 1)        (+ counter 1)        (+ counter 1)        (+ counter 1)        |  |
+;                     max-count)           max-count)           max-count)           max-count)           max-count)           |  |
+;                                                                                                                              |  |
+;                              +-----------------------------------------------------------------------------------------------+  |
+;                              |                                                                                                  |
+;                              |                   +------------------------------------------------------------------------------+
+;                              |                   |
+;                    +------------------+ +------------------+
+;                    |  product   : 120 | |  product   : 720 |
+;                    |  counter   : 6   | |  counter   : 7   |
+;                    |  max-count : 6   | |  max-count : 6   |
+;                    +------------------+ +------------------+
+;                    (fact-iter                 product
+;                     (* counter product)
+;                     (+ counter 1)
+;                     max-count)
+;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.10                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Defining make-withdraw adds a symbol to the global environment and binds it to
+; the body of make-withdraw (shown after desugaring):
+;
+;          +---------------------------------------+
+;          |                                       |
+; global ->| make-withdraw:--+                     |
+;  env     |                 |                     |
+;          +-----------------|---------------------+
+;                            |       ^
+;                            v       |
+;                       +---------+  |
+;                       |  * | *--|--+
+;                       +--|------+
+;                          |
+;                          v
+;    parameters: initial-amount
+;          body: ((lambda (balance)
+;                  (lambda (amount)
+;                    (if (>= balance amount)
+;                        (begin (set! balance (- balance amount))
+;                              balance)
+;                        "Insufficient funds"))) initial-amount)
+;
+;
+; Calling make-withdraw with argument 100 executes the body of make-withdraw
+; in an environment binding initial-amount to 100 whose enclosing environment
+; is the global environment.
+;
+;
+;          +-----------------------------------------------------------------+
+;          |                                                                 |
+; global ->| make-withdraw:---------------------------------------+          |
+;  env     |                                                      |          |
+;          +------------------------------------------------------|----------+
+;                        ^                                        |       ^
+;                        |                                        v       |
+;            +----------------------+                        +---------+  |
+;      E1 -->| initial-amount : 100 |                        |  * | *--|--+
+;            +----------------------+                        +--|------+
+; ((lambda (balance)                                            |
+;   (lambda (amount)                                            v
+;     (if (>= balance amount)                         parameters: initial-amount
+;         (begin (set! balance (- balance amount))          body: ...
+;               balance)
+;         "Insufficient funds"))) initial-amount)
+;
+;
+; Evaluating the first part of the combination creates a new un-named procedure
+; with parameter balance whose environment is E1.
+;
+;          +-----------------------------------------------------------------+
+;          |                                                                 |
+; global ->| make-withdraw:---------------------------------------+          |
+;  env     |                                                      |          |
+;          +------------------------------------------------------|----------+
+;                                      ^                          |       ^
+;                                      |                          v       |
+;                           +----------------------+         +---------+  |
+;                     E1 -->| initial-amount : 100 |         |  * | *--|--+
+;                           +----------------------+         +--|------+
+;                                      ^                        |
+;            +---------+               |                        v
+;            |  * | *--|---------------+              parameters: initial-amount
+;            +--|------+                                    body: ...
+;               |
+;               v
+;     parameters: balance
+;           body:
+;             (lambda (amount)
+;               (if (>= balance amount)
+;                   (begin (set! balance (- balance amount))
+;                         balance)
+;                   "Insufficient funds"))
+;
+;
+; Evaluating the second part of the combination just retrieves initial-amount
+; from E1. Evaluating the combination applies the newly created un-named
+; procedure to initial-amount, thus binding balance to the value of
+; initial-amount in a new environment E2 (I'll omit E1 & the un-named procedure
+; to make space for E2):
+;
+;
+;          +-----------------------------------------------------------------+
+;          |                                                                 |
+; global ->| make-withdraw:---------------------------------------+          |
+;  env     |                                                      |          |
+;          +------------------------------------------------------|----------+
+;                        ^                                        |       ^
+;                        |                                        v       |
+;            +--------------------+                          +---------+  |
+;      E2 -->|   balance : 100    |                          |  * | *--|--+
+;            +--------------------+                          +--|------+
+;   (lambda (amount)                                            v
+;     (if (>= balance amount)                         parameters: initial-amount
+;         (begin (set! balance (- balance amount))          body: ...
+;               balance)
+;         "Insufficient funds"))
+;
+;
+; define binds the result (which is a lambda expression) to a global env
+; variable W2 (since define is called in the global environment):
+;
+;
+;          +-----------------------------------------------------------------+
+;          |                                                                 |
+; global ->| make-withdraw:---------------------------------------+          |
+;  env     |                                                      |          |
+;          | W1:--+                                               |          |
+;          |      |                                               |          |
+;          +------|-----------------------------------------------|----------+
+;                 |                    ^                          |     ^
+;                 |                    |                          v     |
+;                 |            +---------------+         +---------+    |
+;                 |      E2 -->| balance : 100 |         |  * | *--|----+
+;                 |            +---------------+         +--|------+
+;                 |                    ^                    v
+;                 v                    |              parameters: initial-amount
+;            +---------+               |                    body: ...
+;            |  * | *--|---------------+
+;            +--|------+
+;               |
+;               v
+;     parameters: amount
+;           body:
+;             (if (>= balance amount)
+;                 (begin (set! balance (- balance amount))
+;                        balance)
+;                 "Insufficient funds")
+;
+;
+; Calling (W1 50) evaluates the body of W1 in a new environment E3 that binds
+; amount to 50 and whose enclosing environment is E2:
+;
+;
+;          +---------------------------------------------------------------------------------+
+;          |                                                                                 |
+; global ->| make-withdraw:-------------------------------------------------------+          |
+;  env     |                                                                      |          |
+;          | W1:------------------+                                               |          |
+;          |                      |                                               |          |
+;          +----------------------|-----------------------------------------------|----------+
+;                                 |                    ^                          |     ^
+;                                 |                    |                          v     |
+;                                 |            +---------------+         +---------+    |
+;                                 |      E2 -->| balance : 100 |         |  * | *--|----+
+;                                 |            +---------------+         +--|------+
+;                                 |               ^      ^                  v
+;                                 v               |      |        parameters: initial-amount
+;                            +---------+          |      |              body: ...
+;                            |  * | *--|----------+      |
+;                            +--|------+                 |
+;                               |                        |
+;                               v                        |
+;                     parameters: amount                 |
+;                           body: ...                    |
+;                                                        |
+;            +--------------------+                      |
+;      E3 -->|    amount : 50     |----------------------+
+;            +--------------------+
+;        (if (>= balance amount)
+;            (begin (set! balance (- balance amount))
+;                   balance)
+;            "Insufficient funds")
+;
+;
+; Since balance is indeed greater than amount, the set! gets executed and the
+; new balance returned.
+;
+; Defining W2 follows the same steps and results in a new procedure which has
+; the same body as that of W1 but point to a new environment E4 with a separate
+; binding of balance:
+;
+;
+;          +---------------------------------------------------------------------------------+
+;          |                                                                                 |
+; global ->| make-withdraw:-------------------------------------------------------+          |
+;  env     |                                                                      |          |
+;          | W1:------------------+                                               |          |
+;          |                      |                                               |          |
+;          | W2:----+             |                                               |          |
+;          |        |             |                                               |          |
+;          +--------|-------------|-----------------------------------------------|----------+
+;            ^      |             |                    ^                          |     ^
+;            |      |             |                    |                          v     |
+;      +-----+      v             |            +---------------+         +---------+    |
+;      |       +---------+        |      E2 -->| balance : 100 |         |  * | *--|----+
+;      |       |  * | *  |        |            +---------------+         +--|------+
+;      |       +--|---|--+        |               ^                         v
+;      |          |   |           v               |               parameters: initial-amount
+;+-------------+  |   |      +---------+          |                     body: ...
+;| balance:100 |<-+   |      |  * | *--|----------+
+;+-------------+      |      +--|------+
+;      ^              |         |
+;      |              v         v
+;      E4             parameters: amount
+;                           body:
+;                             (if (>= balance amount)
+;                                 (begin (set! balance (- balance amount))
+;                                        balance)
+;                                 "Insufficient funds")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.11                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; (define acc (make-account 50)):
+;
+;          +--------------------------------------------------------------------+
+;          |                                                                    |
+; global ->| make-account:--+                                                   |
+;  env     |                |                                                   |
+;          | acc:-----------|-----------------+                                 |
+;          |                |                 |                                 |
+;          +----------------|-----------------|---------------------------------+
+;                           |       ^         |                   ^
+;                           v       |         |                   |
+;                      +---------+  |         |       +-----------------------+
+;                      |  * | *--|--+         |       | balance: 50           |
+;                      +--|------+            |       | dispatch:---+         |
+;                         |                   | E1 -->| withdraw:...|         |
+;                         v                   |       | deposit:... |         |
+;      parameters: balance                    |       +-------------|---------+
+;            body:                            |                     |      ^
+;              (define (withdraw amount) ...) |                     v      |
+;              (define (deposit amount) ...)  |                +---------+ |
+;              (define (dispatch m) ...)      +--------------->|  * | *--|-+
+;                                                              +--|------+
+;                                                                 v
+;                                                         parameters: m
+;                                                               body:
+;                                                                 (cond ...)
+; ((acc 'deposit) 40):
+;
+;          +--------------------------------------------------------------------+
+;          |                                                                    |
+; global ->| make-account:--+                                                   |
+;  env     |                |                                                   |
+;          | acc:-----------|-----------------+                                 |
+;          |                |                 |                                 |
+;          +----------------|-----------------|---------------------------------+
+;                           |       ^         |                   ^
+;                           v       |         |                   |
+;                      +---------+  |         |       +-----------------------------------------------------------------+
+;                      |  * | *--|--+         |       | balance: 50                                                     |
+;                      +--|------+            |       | dispatch:---+                                                   |
+;                         |                   | E1 -->| withdraw:...|                                                   |
+;                         v                   |       | deposit:... |                                                   |
+;      parameters: balance                    |       +-------------|---------------------------------------------------+
+;            body:                            |                     |      ^            ^                       ^
+;              (define (withdraw amount) ...) |                     v      |            |                       |
+;              (define (deposit amount) ...)  |                +---------+ |    +-------------+         +------------+
+;              (define (dispatch m) ...)      +--------------->|  * | *--|-+    | m: 'deposit |<-- E2   | amount: 40 |<-- E3
+;                                                              +--|------+      +-------------+         +------------+
+;                                                                 v               (cond ...)             (set! balance ...)
+;                                                         parameters: m
+;                                                               body:
+;                                                                 (cond ...)
+; ((acc 'withdraw) 60):
+;
+;          +--------------------------------------------------------------------+
+;          |                                                                    |
+; global ->| make-account:--+                                                   |
+;  env     |                |                                                   |
+;          | acc:-----------|-----------------+                                 |
+;          |                |                 |                                 |
+;          +----------------|-----------------|---------------------------------+
+;                           |       ^         |                   ^
+;                           v       |         |                   |
+;                      +---------+  |         |       +-----------------------------------------------------------------+
+;                      |  * | *--|--+         |       | balance: 50                                                     |
+;                      +--|------+            |       | dispatch:---+                                                   |
+;                         |                   | E1 -->| withdraw:...|                                                   |
+;                         v                   |       | deposit:... |                                                   |
+;      parameters: balance                    |       +-------------|---------------------------------------------------+
+;            body:                            |                     |      ^            ^                       ^
+;              (define (withdraw amount) ...) |                     v      |            |                       |
+;              (define (deposit amount) ...)  |                +---------+ |    +--------------+         +------------+
+;              (define (dispatch m) ...)      +--------------->|  * | *--|-+    | m: 'withdraw |<-- E4   | amount: 60 |<-- E5
+;                                                              +--|------+      +--------------+         +------------+
+;                                                                 v               (cond ...)             (if (>= balance amount)
+;                                                         parameters: m                                    ...)
+;                                                               body:
+;                                                                 (cond ...)
+;
+; The local state for acc is acc's balance which is kept in E1.
+;
+; If we define a new account acc2, the local states are distinct because
+; acc2's dispatch will be pointing to different environemnt:
+;
+;          +--------------------------------------------------------------------+
+;          |                                                                    |
+; global ->| make-account:--+                                                   |
+;  env     |                |                                                   |
+;          | acc:-----------|-----------------+                                 |<---------------+
+;          |                |                 |                                 |                |
+;          | acc2:----------|-----------------|---------------------------------|-+              |
+;          |                |                 |                                 | |              |
+;          +----------------|-----------------|---------------------------------+ |              |
+;                           |       ^         |                   ^               |              |
+;                           v       |         |                   |               |              |
+;                      +---------+  |         |       +----------------------+    |  +------------------------+
+;                      |  * | *--|--+         |       | balance: 50          |    |  | balance: 100           |
+;                      +--|------+            |       | dispatch:---+        |    |  | dispatch:----+         |
+;                         |                   | E1 -->| withdraw:...|        |    |  | withdraw:... |         |
+;                         v                   |       | deposit:... |        |    |  | deposit:...  |         |
+;      parameters: balance                    |       +-------------|--------+    |  +--------------|---------+
+;            body:                            |                     |      ^      |                 |      ^
+;              (define (withdraw amount) ...) |                     v      |      |                 |      |
+;              (define (deposit amount) ...)  |                +---------+ |      |            +---------+ |
+;              (define (dispatch m) ...)      +--------------->|  * | *--|-+      +----------->|  * | *--|-+
+;                                                              +--|------+                     +--|------+
+;                                                                 v                               |
+;                                                         parameters: m <-------------------------+
+;                                                               body:
+;                                                                 (cond ...)
+;
+; The code for dispatch, withdraw and deposit can all be shared between
+; acc and acc2.
