@@ -792,6 +792,9 @@
 ;; ex3.12                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
+; I draw a symbol inside the box as a shortcut for a pointer pointing to the
+; symbol.
+;
 ; response 1: (b)
 ; response 2: (b c d)
 ;
@@ -957,3 +960,219 @@
 ;                   +-----+
 ;                   | wow |
 ;                   +-----+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.16                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; return 3:
+;
+;       +-------+    +-------+    +-------+
+; x1 -->| * | *-|--->| * | *-|--->| * | / |
+;       +-|-----+    +-|-----+    +-|-----+
+;         v            v            v
+;       +---+        +---+        +---+
+;       | a |        | b |        | c |
+;       +---+        +---+        +---+
+;
+; return 4:
+;
+;       +-------+    +-------+
+; x2 -->| * | *-|--->| * | / |
+;       +-|-----+    +-|-----+
+;         v            |
+;       +---+---+      |
+;       | * | / |<-----+
+;       +-|-+---+
+;         v
+;       +---+
+;       | a |
+;       +---+
+;
+; return 7:
+;
+;       +-------+
+; x3 -->| * | * |
+;       +-|---|-+
+;         v   v
+;       +---+---+
+;       | * | * |
+;       +-|-+-|-+
+;         v   v
+;       +---+---+
+;       | * | * |
+;       +-|-+-|-+
+;         v   v
+;      +---+ +---+
+;      | a | | b |
+;      +---+ +---+
+;
+; never returns:
+;
+;           +---------------------------+
+;           |                           |
+;           v                           |
+;       +-------+    +-------+    +-----|-+
+; x4 -->| * | *-|--->| * | *-|--->| * | * |
+;       +-|-----+    +-|-----+    +-|-----+
+;         v            v            v
+;       +---+        +---+        +---+
+;       | a |        | b |        | c |
+;       +---+        +---+        +---+
+
+(module ex3.16 ()
+  (import scheme debug)
+  (title "ex3.16")
+
+  (define (count-pairs x)
+    (if (not (pair? x))
+        0
+        (+ (count-pairs (car x))
+           (count-pairs (cdr x))
+           1)))
+
+  (define x1 '(a b c))
+
+  (define temp2 '(a))
+  (define x2 (list temp2 temp2))
+
+  (define temp3 (cons 'a 'b))
+  (define temp4 (cons temp3 temp3))
+  (define x3 (cons temp4 temp4))
+
+  (define x4 '(a b c))
+  (set-cdr! (cddr x4) x4)
+
+  (println x1)
+  (println x2)
+  (println x3)
+  ; (println x4) ; will never return
+
+  (println (count-pairs x1)) ; 3
+  (println (count-pairs x2)) ; 4
+  (println (count-pairs x3)) ; 7
+  ; (println (count-pairs x4)) ; will never return
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.17                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.17 ()
+  (import scheme debug)
+  (title "ex3.17")
+
+  (define (count-pairs x)
+    (define (iter x visited-pairs)
+      (if (not (pair? x))
+          (list 0 visited-pairs)
+          (let* ((visited-pair (memq x visited-pairs)))
+            (if visited-pair
+              (list 0 visited-pairs)
+              (let* ((new-visited-pairs (cons x visited-pairs))
+                     (car-iter-ret (iter (car x) new-visited-pairs))
+                     (cdr-iter-ret (iter (cdr x) (cadr car-iter-ret))))
+                (list (+ (car car-iter-ret) (car cdr-iter-ret) 1)
+                      (cadr cdr-iter-ret)))))))
+    (car (iter x '())))
+
+  (define x1 '(a b c))
+
+  (define temp2 '(a))
+  (define x2 (list temp2 temp2))
+
+  (define temp3 (cons 'a 'b))
+  (define temp4 (cons temp3 temp3))
+  (define x3 (cons temp4 temp4))
+
+  (define x4 '(a b c))
+  (set-cdr! (cddr x4) x4)
+
+  (println (count-pairs x1)) ; 3
+  (println (count-pairs x2)) ; 3
+  (println (count-pairs x3)) ; 3
+  (println (count-pairs x4)) ; 3
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.18                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.18 ()
+  (import scheme debug)
+  (title "ex3.18")
+
+  (define (has-cycle? x)
+    (define (iter x node)
+      (if (not (pair? x))
+        #f
+        (or (eq? (car x) node) (eq? (cdr x) node)
+            (iter (car x) node) (has-cycle? (car x))
+            (iter (cdr x) node) (has-cycle? (cdr x)))))
+    (iter x x))
+
+  (define x1 '(a b c))
+
+  (define temp2 '(a))
+  (define x2 (list temp2 temp2))
+
+  (define temp3 (cons 'a 'b))
+  (define temp4 (cons temp3 temp3))
+  (define x3 (cons temp4 temp4))
+
+  (define x4 '(a b c))
+  (set-cdr! (cddr x4) x4)
+
+  (define x5 '(a b c))
+  (set-cdr! (cddr x5) (cdr x5))
+
+  (println (has-cycle? x1)) ; #f
+  (println (has-cycle? x2)) ; #f
+  (println (has-cycle? x3)) ; #f
+  (println (has-cycle? x4)) ; #t
+  (println (has-cycle? x5)) ; #t
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.19                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; (module ex3.19 ()
+;   (import scheme debug)
+;   (title "ex3.19")
+; 
+;   (define (has-cycle? x)
+;     (define (iter x node)
+;       (cond ((not (pair? x)) #f)
+;             ((not (eq? (car x) node)) (iter (car x) node))
+;             ((not (eq? (cdr x) node)) (iter (cdr x) node))
+;             (
+;             (else (iter (car x) node) (iter (cdr x) node) (has-cycle? (car x)) (has-cycle? (cdr x)))))
+;     (iter x x))
+; 
+;   (define x1 '(a b c))
+; 
+;   (define temp2 '(a))
+;   (define x2 (list temp2 temp2))
+; 
+;   (define temp3 (cons 'a 'b))
+;   (define temp4 (cons temp3 temp3))
+;   (define x3 (cons temp4 temp4))
+; 
+;   (define x4 '(a b c))
+;   (set-cdr! (cddr x4) x4)
+; 
+;   (println (has-cycle? x1)) ; #f
+;   (println (has-cycle? x2)) ; #f
+;   (println (has-cycle? x3)) ; #f
+;   (println (has-cycle? x4)) ; #t
+; 
+;   (newline))
+
