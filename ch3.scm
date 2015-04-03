@@ -1243,3 +1243,139 @@
 ; (cdr z) points at x (i.e. E1's dispatch procedure). So set-car! will
 ; basically set E1's x to 17. (car x) is then invoked to return the same
 ; value
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.21                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; The Lisp printer only knows how to print pairs and lists, where lists are
+; just pairs whose cdr is itself a pair (or nil). From the point of view of the
+; Lisp printer, the queue looks like a list whose car is itself the list of
+; elements in the queue and whose cdr is a list containing the last element of
+; the queue.
+
+(module ex3.21 ()
+  (import scheme debug)
+  (import (only chicken error))
+  (title "ex3.21")
+
+  (define (front-ptr queue) (car queue))
+  (define (rear-ptr queue) (cdr queue))
+  (define (set-front-ptr! queue item) (set-car! queue item))
+  (define (set-rear-ptr! queue item) (set-cdr! queue item))
+
+  (define (empty-queue? queue) (null? (front-ptr queue)))
+  (define (make-queue) (cons '() '()))
+
+  (define (front-queue queue)
+    (if (empty-queue? queue)
+        (error "FRONT called with an empty queue" queue)
+        (car (front-ptr queue))))
+
+  (define (insert-queue! queue item)
+    (let ((new-pair (cons item '())))
+      (cond ((empty-queue? queue)
+             (set-front-ptr! queue new-pair)
+             (set-rear-ptr! queue new-pair)
+             queue)
+            (else
+             (set-cdr! (rear-ptr queue) new-pair)
+             (set-rear-ptr! queue new-pair)
+             queue))))
+
+  (define (delete-queue! queue)
+    (cond ((empty-queue? queue)
+           (error "DELETE! called with an empty queue" queue))
+          (else
+           (set-front-ptr! queue (cdr (front-ptr queue)))
+           queue)))
+
+  (define (print-queue queue)
+    (display (front-ptr queue)))
+
+  (define q1 (make-queue))
+  (insert-queue! q1 'a)
+  (insert-queue! q1 'b)
+
+  (print-queue q1)
+
+  (newline)
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.22                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.22 ()
+  (import scheme debug)
+  (import (only chicken error))
+  (title "ex3.22")
+
+  (define (make-queue)
+    (let ((front-pointer '())
+          (rear-pointer '()))
+      (define (front-ptr) front-pointer)
+      (define (rear-ptr) rear-pointer)
+      (define (set-front-ptr! item) (set! front-pointer item))
+      (define (set-rear-ptr! item) (set! rear-pointer item))
+      (define (empty-queue?) (null? (front-ptr)))
+      (define (front-queue)
+        (if (empty-queue?)
+            (error "FRONT called with an empty queue")
+            (car (front-ptr))))
+
+      (define (insert-queue! queue item)
+        (let ((new-pair (cons item '())))
+          (cond ((empty-queue?)
+                 (set-front-ptr! new-pair)
+                 (set-rear-ptr! new-pair)
+                 queue)
+                (else
+                 (set-cdr! (rear-ptr) new-pair)
+                 (set-rear-ptr! new-pair)
+                 queue))))
+
+      (define (delete-queue! queue)
+        (cond ((empty-queue?)
+               (error "DELETE! called with an empty queue" queue))
+              (else
+               (set-front-ptr! (cdr (front-ptr)))
+               queue)))
+
+      (define (print-queue)
+        (display (front-ptr)))
+
+      (define (dispatch m)
+        (cond
+          ((eq? m 'front-ptr) front-ptr)
+          ((eq? m 'rear-ptr) rear-ptr)
+          ((eq? m 'set-front-ptr!) set-front-ptr!)
+          ((eq? m 'set-rear-ptr!) set-rear-ptr!)
+          ((eq? m 'empty-queue?) empty-queue?)
+          ((eq? m 'front-queue) front-queue)
+          ((eq? m 'insert-queue!) insert-queue!)
+          ((eq? m 'delete-queue!) delete-queue!)
+          ((eq? m 'print-queue) print-queue)))
+
+      dispatch))
+
+  (define (front-ptr queue) ((queue 'front-ptr)))
+  (define (rear-ptr queue) ((queue 'rear-ptr)))
+  (define (set-front-ptr! queue item) ((queue 'set-front-ptr!) item))
+  (define (set-rear-ptr! queue item) ((queue 'set-rear-ptr!) item))
+  (define (empty-queue? queue) ((queue 'empty-queue?)))
+  (define (front-queue queue) ((queue 'front-queue)))
+  (define (insert-queue! queue item) ((queue 'insert-queue!) queue item))
+  (define (delete-queue! queue) ((queue 'delete-queue!) queue))
+  (define (print-queue queue) ((queue 'print-queue)))
+
+  (define q1 (make-queue))
+  (insert-queue! q1 'a)
+  (insert-queue! q1 'b)
+
+  (print-queue q1)
+
+  (newline)
+  (newline))
