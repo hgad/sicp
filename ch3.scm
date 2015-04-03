@@ -1270,7 +1270,7 @@
 
   (define (front-queue queue)
     (if (empty-queue? queue)
-        (error "FRONT called with an empty queue" queue)
+        (error "FRONT-QUEUE called with an empty queue" queue)
         (car (front-ptr queue))))
 
   (define (insert-queue! queue item)
@@ -1286,7 +1286,7 @@
 
   (define (delete-queue! queue)
     (cond ((empty-queue? queue)
-           (error "DELETE! called with an empty queue" queue))
+           (error "DELETE-QUEUE! called with an empty queue" queue))
           (else
            (set-front-ptr! queue (cdr (front-ptr queue)))
            queue)))
@@ -1298,7 +1298,7 @@
   (insert-queue! q1 'a)
   (insert-queue! q1 'b)
 
-  (print-queue q1)
+  (print-queue q1) ; (a b)
 
   (newline)
   (newline))
@@ -1323,7 +1323,7 @@
       (define (empty-queue?) (null? (front-ptr)))
       (define (front-queue)
         (if (empty-queue?)
-            (error "FRONT called with an empty queue")
+            (error "FRONT-QUEUE called with an empty queue")
             (car (front-ptr))))
 
       (define (insert-queue! queue item)
@@ -1339,7 +1339,7 @@
 
       (define (delete-queue! queue)
         (cond ((empty-queue?)
-               (error "DELETE! called with an empty queue" queue))
+               (error "DELETE-QUEUE! called with an empty queue" queue))
               (else
                (set-front-ptr! (cdr (front-ptr)))
                queue)))
@@ -1349,10 +1349,6 @@
 
       (define (dispatch m)
         (cond
-          ((eq? m 'front-ptr) front-ptr)
-          ((eq? m 'rear-ptr) rear-ptr)
-          ((eq? m 'set-front-ptr!) set-front-ptr!)
-          ((eq? m 'set-rear-ptr!) set-rear-ptr!)
           ((eq? m 'empty-queue?) empty-queue?)
           ((eq? m 'front-queue) front-queue)
           ((eq? m 'insert-queue!) insert-queue!)
@@ -1361,10 +1357,6 @@
 
       dispatch))
 
-  (define (front-ptr queue) ((queue 'front-ptr)))
-  (define (rear-ptr queue) ((queue 'rear-ptr)))
-  (define (set-front-ptr! queue item) ((queue 'set-front-ptr!) item))
-  (define (set-rear-ptr! queue item) ((queue 'set-rear-ptr!) item))
   (define (empty-queue? queue) ((queue 'empty-queue?)))
   (define (front-queue queue) ((queue 'front-queue)))
   (define (insert-queue! queue item) ((queue 'insert-queue!) queue item))
@@ -1375,7 +1367,123 @@
   (insert-queue! q1 'a)
   (insert-queue! q1 'b)
 
-  (print-queue q1)
+  (print-queue q1) ; (a b)
+
+  (newline)
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.23                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.23 ()
+  (import scheme debug)
+  (import (only chicken error))
+  (title "ex3.23")
+
+  (define (make-node item)
+    (let ((forward-pair (cons item '()))
+          (backward-pair (cons item '())))
+      (cons forward-pair backward-pair)))
+
+  (define (forward-pair node) (car node))
+  (define (backward-pair node) (cdr node))
+
+  (define (node-value node) (car (forward-pair node)))
+  (define (next-node node) (cdr (forward-pair node)))
+  (define (prev-node node) (cdr (backward-pair node)))
+  (define (last-node? node) (null? (next-node node)))
+  (define (set-next-node! node next-node)
+    (set-cdr! (forward-pair node) next-node))
+  (define (set-prev-node! node prev-node)
+    (set-cdr! (backward-pair node) prev-node))
+
+  (define (make-deque) (cons '() '()))
+  (define (front-node deque) (car deque))
+  (define (rear-node deque) (cdr deque))
+  (define (set-front-node! deque node) (set-car! deque node))
+  (define (set-rear-node! deque node) (set-cdr! deque node))
+  (define (empty-deque? deque) (null? (front-node deque)))
+
+  (define (front-deque deque)
+    (if (empty-deque?)
+            (error "FRONT-DEQUE called with an empty deque")
+            (node-value (front-node deque))))
+
+  (define (rear-deque deque)
+    (if (empty-deque?)
+            (error "REAR-DEQUE called with an empty deque")
+            (node-value (rear-node deque))))
+
+  (define (front-insert-deque! deque item)
+    (let ((new-node (make-node item)))
+      (cond ((empty-deque? deque)
+             (set-front-node! deque new-node)
+             (set-rear-node! deque new-node)
+             deque)
+            (else
+             (set-prev-node! (front-node deque) new-node)
+             (set-next-node! new-node (front-node deque))
+             (set-front-node! deque new-node)
+             deque))))
+
+  (define (rear-insert-deque! deque item)
+    (let ((new-node (make-node item)))
+      (cond ((empty-deque? deque)
+             (set-front-node! deque new-node)
+             (set-rear-node! deque new-node)
+             deque)
+            (else
+             (set-prev-node! new-node (rear-node deque))
+             (set-next-node! (rear-node deque) new-node)
+             (set-rear-node! deque new-node)
+             deque))))
+
+  (define (front-delete-deque! deque)
+    (cond ((empty-deque? deque)
+           (error "FRONT-DELETE-QUEUE! called with an empty deque" deque))
+          (else
+           (set-prev-node! (next-node (front-node deque)) '())
+           (set-front-node! deque (next-node (front-node deque)))
+           deque)))
+
+  (define (rear-delete-deque! deque)
+    (cond ((empty-deque? deque)
+           (error "REAR-DELETE-QUEUE! called with an empty deque" deque))
+          (else
+           (set-next-node! (prev-node (rear-node deque)) '())
+           (set-rear-node! deque (prev-node (rear-node deque)))
+           deque)))
+
+  (define (print-deque deque)
+    (define (print-node node)
+      (display (node-value node)))
+
+    (define (print-all-nodes node)
+      (if (not (null? node))
+        (begin
+          (print-node node)
+          (if (not (last-node? node))
+              (display " "))
+          (print-all-nodes (next-node node)))))
+
+    (if (empty-deque? deque)
+      (display "()")
+      (begin
+        (display "(")
+        (print-all-nodes (front-node deque))
+        (display ")"))))
+
+  (define d1 (make-deque))
+  (rear-insert-deque! d1 'a)
+  (rear-insert-deque! d1 'b)
+  (front-insert-deque! d1 'c)
+  (front-insert-deque! d1 'd)
+  (rear-delete-deque! d1)
+  (front-delete-deque! d1)
+
+  (print-deque d1) ; (c a)
 
   (newline)
   (newline))
