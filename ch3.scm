@@ -1108,13 +1108,18 @@
   (title "ex3.18")
 
   (define (has-cycle? x)
-    (define (iter x node)
+    (define (iter x visited-pairs)
       (if (not (pair? x))
-        #f
-        (or (eq? (car x) node) (eq? (cdr x) node)
-            (iter (car x) node) (has-cycle? (car x))
-            (iter (cdr x) node) (has-cycle? (cdr x)))))
-    (iter x x))
+          (list #f visited-pairs)
+          (let* ((visited-pair (memq x visited-pairs)))
+            (if visited-pair
+              (list #t visited-pairs)
+              (let* ((new-visited-pairs (cons x visited-pairs))
+                     (car-iter-ret (iter (car x) new-visited-pairs))
+                     (cdr-iter-ret (iter (cdr x) new-visited-pairs)))
+                (list (or (car car-iter-ret) (car cdr-iter-ret))
+                      (cadr cdr-iter-ret)))))))
+    (car (iter x '())))
 
   (define x1 '(a b c))
 
@@ -1144,35 +1149,97 @@
 ;; ex3.19                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; (module ex3.19 ()
-;   (import scheme debug)
-;   (title "ex3.19")
-; 
-;   (define (has-cycle? x)
-;     (define (iter x node)
-;       (cond ((not (pair? x)) #f)
-;             ((not (eq? (car x) node)) (iter (car x) node))
-;             ((not (eq? (cdr x) node)) (iter (cdr x) node))
-;             (
-;             (else (iter (car x) node) (iter (cdr x) node) (has-cycle? (car x)) (has-cycle? (cdr x)))))
-;     (iter x x))
-; 
-;   (define x1 '(a b c))
-; 
-;   (define temp2 '(a))
-;   (define x2 (list temp2 temp2))
-; 
-;   (define temp3 (cons 'a 'b))
-;   (define temp4 (cons temp3 temp3))
-;   (define x3 (cons temp4 temp4))
-; 
-;   (define x4 '(a b c))
-;   (set-cdr! (cddr x4) x4)
-; 
-;   (println (has-cycle? x1)) ; #f
-;   (println (has-cycle? x2)) ; #f
-;   (println (has-cycle? x3)) ; #f
-;   (println (has-cycle? x4)) ; #t
-; 
-;   (newline))
+(module ex3.19 ()
+  (import scheme debug)
+  (title "ex3.19")
 
+  (define (has-cycle? x)
+    (define (iter tortoise1 hare1 tortoise2 hare2)
+      (cond ((and (equal? tortoise1 "stopped")
+                  (equal? tortoise2 "stopped")
+                  (equal? hare1 "stopped")
+                  (equal? hare2 "stopped")) #f)
+            ((or (and (not (equal? tortoise1 "stopped")) (eq? tortoise1 hare1))
+                 (and (not (equal? tortoise2 "stopped")) (eq? tortoise2 hare2))
+                 (and (not (equal? tortoise1 "stopped")) (eq? tortoise1 hare2))
+                 (and (not (equal? tortoise2 "stopped")) (eq? tortoise2 hare1))) #t)
+            (else (let* ((new-tortoise1 (if (pair? tortoise1) (car tortoise1) "stopped"))
+                         (new-hare1-temp (if (pair? hare1) (car hare1) "stopped"))
+                         (new-hare1 (if (pair? new-hare1-temp) (car new-hare1-temp) "stopped"))
+                         (new-tortoise2 (if (pair? tortoise2) (cdr tortoise2) "stopped"))
+                         (new-hare2-temp (if (pair? hare2) (cdr hare2) "stopped"))
+                         (new-hare2 (if (pair? new-hare2-temp) (cdr new-hare2-temp) "stopped")))
+                    (iter new-tortoise1 new-hare1 new-tortoise2 new-hare2)))))
+    (if (not (pair? x))
+      #f
+      (iter x (car x) x (cdr x))))
+
+  (define x1 '(a b c))
+
+  (define temp2 '(a))
+  (define x2 (list temp2 temp2))
+
+  (define temp3 (cons 'a 'b))
+  (define temp4 (cons temp3 temp3))
+  (define x3 (cons temp4 temp4))
+
+  (define x4 '(a b c))
+  (set-cdr! (cddr x4) x4)
+
+  (define x5 '(a b c))
+  (set-cdr! (cddr x5) (cdr x5))
+
+  (println (has-cycle? x1)) ; #f
+  (println (has-cycle? x2)) ; #f
+  (println (has-cycle? x3)) ; #f
+  (println (has-cycle? x4)) ; #t
+  (println (has-cycle? x5)) ; #t
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.20                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; (define x (cons 1 2))
+; (define z (cons x x))
+;
+;          +--------------------------------------------------------------------------------------------------+
+;          |                                                                                                  |
+; global ->| cons:-------+                                                                                    |
+;          | car:...     |                                                                                    |
+;          | cdr:...     |                                                                                    |
+;          | set-car!:...|                                                                                    |
+;          | set-cdr!:...|                                                                                    |
+;          | x:----------|-------------+                                                                      |
+;          | z:----------|-------------|----------------------------------+                                   |
+;          |             |             |                                  |                                   |
+;          +-------------|-------------|----------------------------------|-----------------------------------+
+;                   +----+  ^          |                  ^               |                      ^
+;                   |       |          |                  |               |                      |
+;                   v       |          |                  |               |                      |
+;              +---------+  |          |      +-----------------------+   |         +------------------------+
+;              |  * | *--|--+          |      | x: 1                  |   |         | x:-------------------+ |
+;              +--|------+             |      | y: 2                  |   |         | y:-------------------+ |
+;                 |                    | E1 ->| set-x!:...            |   |    E2 ->| set-x!:...           | |
+;                 v                    |      | set-y!:...            |   |         | set-y!:...           | |
+; parameters: x y                      |      | dispatch:---+         |   |         | dispatch:---+        | |
+;       body:                          |      +-------------|---------+   |         +-------------|--------|-+
+;         (define (set-x! amount) ...) |                    v      ^      |                       v      ^ |
+;         (define (set-y! amount) ...) |               +---------+ |      |                  +---------+ | |
+;         (define (dispatch m) ...)    +-------------->|  * | *--|-+      +----------------->|  * | *--|-+ |
+;         dispatch                                     +--|------+                           +--|------+   |
+;                                                         v     ^                               v          |
+;                                               parameters: m   |                     parameters: m        |
+;                                                     body:     +--------+                  body:          |
+;                                                       (cond ...)       |                    (cond ...)   |
+;                                                                        +---------------------------------+
+;
+; E1's dispatch procedure is essentially the pair (1 . 2).
+;
+; (set-car! (cdr z) 17):
+;
+; (cdr z) points at x (i.e. E1's dispatch procedure). So set-car! will
+; basically set E1's x to 17. (car x) is then invoked to return the same
+; value
