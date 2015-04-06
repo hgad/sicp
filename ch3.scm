@@ -7,6 +7,7 @@
     (if (not (zero? n)) (let () (newline) (newlines (sub1 n)))))
 
   (define (title str)
+    (newline)
     (display (string-append str ":")) (newline))
 
   (define (println obj)
@@ -81,9 +82,7 @@
   (println (a 10))
   (println (b 10))
   (println (a 10))
-  (println (b 10))
-
-  (newline))
+  (println (b 10)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -111,9 +110,7 @@
   (println (msqrt 100))
   (println (msqrt 'how-many-calls?))
   (println (msqrt 'reset-count))
-  (println (msqrt 'how-many-calls?))
-
-  (newline))
+  (println (msqrt 'how-many-calls?)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -150,9 +147,7 @@
   (define acc (make-account 100 'secret-password))
   (println ((acc 'secret-password 'withdraw) 40))
   (println ((acc 'some-other-password 'deposit) 50))
-  (println ((acc 'secret-password 'deposit) 30))
-
-  (newline))
+  (println ((acc 'secret-password 'deposit) 30)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -216,9 +211,7 @@
   (println ((acc 'some-other-password7 'withdraw) 50))
   (println ((acc 'some-other-password8 'withdraw) 50))
 
-  (println ((acc 'secret-password 'deposit) 30))
-
-  (newline))
+  (println ((acc 'secret-password 'deposit) 30)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -260,9 +253,7 @@
   (define pi-estimate
     (estimate-integral in-unit-circle -1.0 1.0 -1.0 1.0 10000))
 
-  (println pi-estimate)
-
-  (newline))
+  (println pi-estimate))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -323,8 +314,7 @@
   (println (rand 'generate))
   (println (rand 'generate))
   (println (rand 'generate))
-  (println (rand 'generate))
-  (newline))
+  (println (rand 'generate)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -375,9 +365,7 @@
   (println ((peter-acc 'rosebud 'withdraw) 30))
   (println ((paul-acc 'open-sesame 'withdraw) 30))
   (println ((paul-acc 'rosebud 'withdraw) 50))
-  (println ((peter-acc 'open-sesame 'deposit) 40))
-
-  (newline))
+  (println ((peter-acc 'open-sesame 'deposit) 40)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -398,9 +386,7 @@
   (println (+ (f 0) (f 1)))
 
   (define g (factory 0))
-  (println (+ (g 1) (g 0)))
-
-  (newline))
+  (println (+ (g 1) (g 0))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1053,8 +1039,7 @@
   (println (count-pairs x2)) ; 4
   (println (count-pairs x3)) ; 7
   ; (println (count-pairs x4)) ; will never return
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1095,8 +1080,7 @@
   (println (count-pairs x2)) ; 3
   (println (count-pairs x3)) ; 3
   (println (count-pairs x4)) ; 3
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1141,8 +1125,7 @@
   (println (has-cycle? x3)) ; #f
   (println (has-cycle? x4)) ; #t
   (println (has-cycle? x5)) ; #t
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1194,8 +1177,7 @@
   (println (has-cycle? x3)) ; #f
   (println (has-cycle? x4)) ; #t
   (println (has-cycle? x5)) ; #t
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1255,7 +1237,7 @@
 ; elements in the queue and whose cdr is a list containing the last element of
 ; the queue.
 
-(module ex3.21 ()
+(module ex3.21 (make-queue empty-queue? front-queue insert-queue! delete-queue!)
   (import scheme debug)
   (import (only chicken error))
   (title "ex3.21")
@@ -1300,7 +1282,6 @@
 
   (print-queue q1) ; (a b)
 
-  (newline)
   (newline))
 
 
@@ -1369,7 +1350,6 @@
 
   (print-queue q1) ; (a b)
 
-  (newline)
   (newline))
 
 
@@ -1485,5 +1465,581 @@
 
   (print-deque d1) ; (c a)
 
-  (newline)
   (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.24                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.24 ()
+  (import scheme debug)
+  (import (only chicken error))
+  (title "ex3.24")
+
+  (define (make-table same-key?)
+    (let ((local-table (list '*table*)))
+      (define (assoc-same-key? key records)
+        (cond ((null? records) #f)
+              ((same-key? key (caar records)) (car records))
+              (else (assoc-same-key? key (cdr records)))))
+
+      (define (lookup key)
+        (let ((record (assoc-same-key? key (cdr local-table))))
+          (if record (cdr record) #f)))
+
+      (define (insert! key value)
+        (let ((record (assoc-same-key? key (cdr local-table))))
+          (if record
+              (begin (set-car! record key)
+                     (set-cdr! record value))
+              (set-cdr! local-table
+                        (cons (cons key value)
+                              (cdr local-table)))))
+        'ok)
+
+      (define (print)
+        (display (cdr local-table)))
+
+      (define (dispatch m)
+        (cond ((eq? m 'lookup-proc) lookup)
+              ((eq? m 'insert-proc!) insert!)
+              ((eq? m 'print-proc) print)
+              (else (error "Unknown operation -- TABLE" m))))
+
+      dispatch))
+
+  (define (lookup key table)
+    ((table 'lookup-proc) key))
+
+  (define (insert! key value table)
+    ((table 'insert-proc!) key value))
+
+  (define (print-table table)
+    ((table 'print-proc)))
+
+  (define (within-tolerance? k1 k2)
+    (< (abs (- k1 k2)) 0.1))
+
+  (define t1 (make-table within-tolerance?))
+  (insert! 1 'a t1)
+  (insert! 2 'b t1)
+  (insert! 1.05 'c t1)
+
+  (print-table t1)
+  (newline)
+
+  (println (lookup 1 t1)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.25                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.25 ()
+  (import scheme debug)
+  (import (only chicken error))
+  (title "ex3.25")
+
+  (define (make-table)
+    (let ((local-table (list '*table*)))
+      (define (lookup keys)
+        (let ((record (assoc keys (cdr local-table))))
+          (if record (cdr record) #f)))
+
+      (define (insert! keys value)
+        (let ((record (assoc keys (cdr local-table))))
+          (if record
+              (begin (set-car! record keys)
+                     (set-cdr! record value))
+              (set-cdr! local-table
+                        (cons (cons keys value)
+                              (cdr local-table)))))
+        'ok)
+
+      (define (print)
+        (display (cdr local-table)))
+
+      (define (dispatch m)
+        (cond ((eq? m 'lookup-proc) lookup)
+              ((eq? m 'insert-proc!) insert!)
+              ((eq? m 'print-proc) print)
+              (else (error "Unknown operation -- TABLE" m))))
+
+      dispatch))
+
+  (define (lookup keys table)
+    ((table 'lookup-proc) keys))
+
+  (define (insert! keys value table)
+    ((table 'insert-proc!) keys value))
+
+  (define (print-table table)
+    ((table 'print-proc)))
+
+  (define t1 (make-table))
+  (insert! '(1 2) 'a t1)
+  (insert! '(3 4 5) 'b t1)
+  (insert! '(1 2) 'c t1)
+
+  (print-table t1)
+  (newline)
+
+  (println (lookup '(3 4 5) t1)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.26                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.26 ()
+  (import scheme debug)
+  (import (only chicken error))
+  (title "ex3.26")
+
+  (define (make-table key-less-than?)
+    (define (make-tree key value left-branch right-branch)
+      (list key value left-branch right-branch))
+
+    (define (empty-tree? tree) (null? tree))
+    (define (get-key tree) (car tree))
+    (define (get-value tree) (cadr tree))
+    (define (left-branch tree) (caddr tree))
+    (define (right-branch tree) (cadddr tree))
+
+    (define (set-key! key tree) (set-car! tree key))
+    (define (set-value! value tree) (set-car! (cdr tree) value))
+    (define (set-left-branch! left-branch tree) (set-car! (cddr tree) left-branch))
+    (define (set-right-branch! right-branch tree) (set-car! (cdddr tree) right-branch))
+
+    (define (tree-lookup key tree)
+      (let ((tree-key (get-key tree)))
+        (cond
+          ((key-less-than? key tree-key)
+           (if (empty-tree? (left-branch tree))
+               #f
+               (tree-lookup key (left-branch tree))))
+          ((key-less-than? tree-key key)
+           (if (empty-tree? (right-branch tree))
+               #f
+               (tree-lookup key (right-branch tree))))
+          (else
+           (get-value tree)))))
+
+    (define (tree-insert! key value tree)
+      (let ((tree-key (get-key tree)))
+        (cond
+          ((key-less-than? key tree-key)
+           (if (empty-tree? (left-branch tree))
+               (set-left-branch! (make-tree key value '() '()) tree)
+               (tree-insert! key value (left-branch tree))))
+          ((key-less-than? tree-key key)
+           (if (empty-tree? (right-branch tree))
+               (set-right-branch! (make-tree key value '() '()) tree)
+               (tree-insert! key value (right-branch tree))))
+          (else
+           (set-key! key tree)
+           (set-value! value tree)))))
+
+    (define (tree-print tree)
+      (if (not (empty-tree? (left-branch tree)))
+          (tree-print (left-branch tree)))
+
+      (display "(")
+      (display (get-key tree))
+      (display " ")
+      (display (get-value tree))
+      (display ")")
+
+      (if (not (empty-tree? (right-branch tree)))
+          (tree-print (right-branch tree))))
+
+    (let ((local-table (list '*table*)))
+      (define (empty-table?)
+        (null? (cdr local-table)))
+
+      (define (table-tree)
+        (cadr local-table))
+
+      (define (lookup key)
+        (if (empty-table?)
+            #f
+            (tree-lookup key (table-tree))))
+
+      (define (insert! key value)
+        (if (empty-table?)
+          (set-cdr! local-table (list (make-tree key value '() '())))
+          (tree-insert! key value (table-tree))))
+
+      (define (print)
+        (display "(")
+        (tree-print (table-tree))
+        (display ")"))
+
+      (define (dispatch m)
+        (cond ((eq? m 'lookup-proc) lookup)
+              ((eq? m 'insert-proc!) insert!)
+              ((eq? m 'print-proc) print)
+              (else (error "Unknown operation -- TABLE" m))))
+
+      dispatch))
+
+  (define (lookup key table)
+    ((table 'lookup-proc) key))
+
+  (define (insert! key value table)
+    ((table 'insert-proc!) key value))
+
+  (define (print-table table)
+    ((table 'print-proc)))
+
+  (define t1 (make-table <))
+  (insert! 1 'a t1)
+  (insert! 3 'c t1)
+  (insert! 2 'b t1)
+
+  (print-table t1)
+  (newline)
+
+  (println (lookup 1 t1)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.27 (incomplete)                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; The environment diagram is obvious but ASCII art is tiresome, so I'll skip it.
+;
+; memo-fib computes the nth-fibonacci number in a number of steps proportional
+; to n because no fibonacci number has to be computed twice as in the case of
+; the exponential fibonacci number. Once a fibonacci number is computed, it is
+; stored in the memoization table and retrieved when needed.
+;
+; This scheme will work if memo-fib is defined as (memoize fib) but it will be
+; less efficient than the given definition. For example, computing (memo-fib 10)
+; using the original definition would start by computing and storing (memo-fib 0)
+; and (memo-fib 1). (memo-fib 2) will be computed by retrieving the values of
+; (memo-fib 1) and (memo-fib 0) from the memoization table, and then (memo-fib 2)
+; itself will be stored in the table for the computation of the next fibonacci
+; number to use it. In the new scheme (memo-fib 10) will compute all the
+; fibonacci numbers from 1 to 10 (more than once) and will only store the result
+; of (fib 10).
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.28                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.28 (make-agenda make-wire get-signal set-signal! add-action!
+                inverter and-gate or-gate probe propagate clear-the-agenda!)
+  (import scheme debug ex3.21)
+  (import (only chicken error))
+  (title "ex3.28")
+
+  (define (make-time-segment time queue)
+    (cons time queue))
+  (define (segment-time s) (car s))
+  (define (segment-queue s) (cdr s))
+
+  (define (make-agenda) (list 0))
+  (define the-agenda (make-agenda))
+  (define (clear-the-agenda!) (set! the-agenda (make-agenda)))
+
+
+  (define (current-time agenda) (car agenda))
+  (define (set-current-time! agenda time)
+    (set-car! agenda time))
+  (define (segments agenda) (cdr agenda))
+  (define (set-segments! agenda segments)
+    (set-cdr! agenda segments))
+  (define (first-segment agenda) (car (segments agenda)))
+  (define (rest-segments agenda) (cdr (segments agenda)))
+
+  (define (empty-agenda? agenda)
+    (null? (segments agenda)))
+
+  (define (add-to-agenda! time action agenda)
+    (define (belongs-before? segments)
+      (or (null? segments)
+          (< time (segment-time (car segments)))))
+
+    (define (make-new-time-segment time action)
+      (let ((q (make-queue)))
+        (insert-queue! q action)
+        (make-time-segment time q)))
+
+    (define (add-to-segments! segments)
+      (if (= (segment-time (car segments)) time)
+          (insert-queue! (segment-queue (car segments))
+                         action)
+          (let ((rest (cdr segments)))
+            (if (belongs-before? rest)
+                (set-cdr!
+                 segments
+                 (cons (make-new-time-segment time action)
+                       (cdr segments)))
+                (add-to-segments! rest)))))
+
+    (let ((segments (segments agenda)))
+      (if (belongs-before? segments)
+          (set-segments!
+           agenda
+           (cons (make-new-time-segment time action)
+                 segments))
+          (add-to-segments! segments))))
+
+  (define (remove-first-agenda-item! agenda)
+    (let ((q (segment-queue (first-segment agenda))))
+      (delete-queue! q)
+      (if (empty-queue? q)
+          (set-segments! agenda (rest-segments agenda)))))
+
+  (define (first-agenda-item agenda)
+    (if (empty-agenda? agenda)
+        (error "Agenda is empty -- FIRST-AGENDA-ITEM")
+        (let ((first-seg (first-segment agenda)))
+          (set-current-time! agenda (segment-time first-seg))
+          (front-queue (segment-queue first-seg)))))
+
+  (define (after-delay delay-period action)
+    (add-to-agenda! (+ delay-period (current-time the-agenda))
+                    action
+                    the-agenda))
+
+  (define (propagate)
+    (if (empty-agenda? the-agenda)
+        'done
+        (let ((first-item (first-agenda-item the-agenda)))
+          (first-item)
+          (remove-first-agenda-item! the-agenda)
+          (propagate))))
+
+  (define (call-each procedures)
+    (if (null? procedures)
+        'done
+        (begin
+          ((car procedures))
+          (call-each (cdr procedures)))))
+
+  (define (make-wire)
+    (let ((signal-value 0) (action-procedures '()))
+      (define (set-my-signal! new-value)
+        (if (not (= signal-value new-value))
+            (begin
+              (set! signal-value new-value)
+              (call-each action-procedures))
+            'done))
+      (define (accept-action-procedure! proc)
+        (set! action-procedures (append action-procedures (list proc)))
+        (proc))
+      (define (dispatch m)
+        (cond ((eq? m 'get-signal) signal-value)
+              ((eq? m 'set-signal!) set-my-signal!)
+              ((eq? m 'add-action!) accept-action-procedure!)
+              (else (error "Unknown operation -- WIRE" m))))
+      dispatch))
+
+  (define (get-signal w) (w 'get-signal))
+  (define (set-signal! w v) ((w 'set-signal!) v))
+  (define (add-action! w a) ((w 'add-action!) a))
+
+  (define (logical-not s)
+    (cond ((= s 0) 1)
+          ((= s 1) 0)
+          (else (error "Invalid signal" s))))
+
+  (define (logical-and s1 s2)
+    (let ((valid-signals '(0 1)))
+      (if (and (memq s1 valid-signals) (memq s2 valid-signals))
+        (if (or (= s1 0) (= s2 0)) 0 1)
+        (error "Invalid signals" s1 s2))))
+
+  (define (logical-or s1 s2)
+    (let ((valid-signals '(0 1)))
+      (if (and (memq s1 valid-signals) (memq s2 valid-signals))
+        (if (or (= s1 1) (= s2 1)) 1 0)
+        (error "Invalid signals" s1 s2))))
+
+  (define (inverter input output)
+    (define (invert-input)
+      (let ((new-value (logical-not (get-signal input)))
+            (inverter-delay 1))
+        (after-delay inverter-delay
+                     (lambda () (set-signal! output new-value)))))
+    (add-action! input invert-input)
+    'ok)
+
+  (define (and-gate a1 a2 output)
+    (define (and-action-procedure)
+      (let ((new-value (logical-and (get-signal a1) (get-signal a2)))
+            (and-gate-delay 2))
+        (after-delay and-gate-delay
+                     (lambda () (set-signal! output new-value)))))
+    (add-action! a1 and-action-procedure)
+    (add-action! a2 and-action-procedure)
+    'ok)
+
+  (define (or-gate a1 a2 output)
+    (define (or-action-procedure)
+      (let ((new-value (logical-or (get-signal a1) (get-signal a2)))
+            (or-gate-delay 2))
+        (after-delay or-gate-delay
+                     (lambda () (set-signal! output new-value)))))
+    (add-action! a1 or-action-procedure)
+    (add-action! a2 or-action-procedure)
+    'ok)
+
+  (define (probe name wire)
+    (add-action! wire
+      (lambda ()
+        (newline)
+        (display "Wire = ")
+        (display name)
+        (display " Time = ")
+        (display (current-time the-agenda))
+        (display " Value = ")
+        (display (get-signal wire)))))
+
+  (define a (make-wire))
+  (define b (make-wire))
+  (define o (make-wire))
+  (set-signal! a 1)
+  (set-signal! b 0)
+  (or-gate a b o)
+
+  (probe 'o o)
+  (propagate)
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.29                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.29 ()
+  (import scheme debug)
+  (import (only chicken error))
+  (import (only ex3.28 make-wire set-signal! inverter and-gate probe propagate
+                       clear-the-agenda!))
+  (title "ex3.29")
+  (clear-the-agenda!)
+
+  (define (or-gate a b output)
+    (let ((i1 (make-wire)) (i2 (make-wire)) (io (make-wire)))
+      (inverter a i1)
+      (inverter b i2)
+      (and-gate i1 i2 io)
+      (inverter io output)
+      'ok))
+
+  (define a (make-wire))
+  (define b (make-wire))
+  (define o (make-wire))
+  (set-signal! a 1)
+  (set-signal! b 0)
+  (or-gate a b o)
+
+  (probe 'o o)
+  (propagate)
+
+  ; or-gate delay is equals to 2 inverter gate delays (for input and output
+  ; inverters) + 1 and-gate delay.
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.30                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.30 ()
+  (import scheme debug ex3.28)
+  (import (only chicken error))
+  (title "ex3.30")
+  (clear-the-agenda!)
+
+  (define (half-adder a b s c)
+    (let ((d (make-wire)) (e (make-wire)))
+      (or-gate a b d)
+      (and-gate a b c)
+      (inverter c e)
+      (and-gate d e s)
+      'ok))
+
+  (define (full-adder a b c-in sum c-out)
+    (let ((s (make-wire))
+          (c1 (make-wire))
+          (c2 (make-wire)))
+      (half-adder b c-in s c1)
+      (half-adder a s sum c2)
+      (or-gate c1 c2 c-out)
+      'ok))
+
+  (define (ripple-carry-adder as bs c-in ss c-out)
+    (if (or (not (= (length as) (length bs)))
+            (not (= (length as) (length ss))))
+      (error "Signals of different lengths" as bs ss)
+      (if (= (length as) 1)
+        (begin
+          (full-adder (car as) (car bs) c-in (car ss) c-out)
+          'ok)
+        (let ((stage-carry (make-wire)))
+          (full-adder (car as) (car bs) c-in (car ss) stage-carry)
+          (ripple-carry-adder (cdr as) (cdr bs) stage-carry (cdr ss) c-out)))))
+
+  (define a0 (make-wire))
+  (define a1 (make-wire))
+  (define a2 (make-wire))
+
+  (define b0 (make-wire))
+  (define b1 (make-wire))
+  (define b2 (make-wire))
+
+  (define s0 (make-wire))
+  (define s1 (make-wire))
+  (define s2 (make-wire))
+
+  (define c-in  (make-wire))
+  (define c-out (make-wire))
+
+  ; a = 5
+  (set-signal! a0 1)
+  (set-signal! a1 0)
+  (set-signal! a2 1)
+
+  ; b = 6
+  (set-signal! b0 0)
+  (set-signal! b1 1)
+  (set-signal! b2 1)
+
+  ; c-in = 1
+  (set-signal! c-in 1)
+
+  (probe 's0 s0)
+  (probe 's1 s1)
+  (probe 's2 s2)
+
+  (probe 'c-out c-out)
+
+  (ripple-carry-adder (list a0 a1 a2) (list b0 b1 b2) c-in (list s0 s1 s2) c-out)
+
+  (propagate)
+
+  ; Wire = s0 Time = 9 Value = 0
+  ; Wire = s1 Time = 17 Value = 0
+  ; Wire = s2 Time = 22 Value = 1
+  ; Wire = c-out Time = 8 Value = 1
+  ;
+  ; Therefore, the final output is 1100 (i.e. 12) for inputs 101 (5), 110 (6)
+  ; and 1 (1) carry-in.
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.30                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; If accept-action-procedure! does not run the given proceduce after adding it,
+; creating new circuitry will amount to only adding action procedures to wires

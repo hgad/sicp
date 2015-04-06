@@ -7,6 +7,7 @@
     (if (not (zero? n)) (let () (newline) (newlines (sub1 n)))))
 
   (define (title str)
+    (newline)
     (display (string-append str ":")) (newline))
 
   (define (println obj)
@@ -81,8 +82,7 @@
 
   (define (denom rat) (cdr rat))
 
-  (println (make-rat 6 12))
-  (newline))
+  (println (make-rat 6 12)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -120,7 +120,7 @@
     (midpoint-segment
       (make-seg (make-point 0.0 0.0)
                 (make-point 3.0 3.0)))) ; (1.5,1.5)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -160,8 +160,7 @@
 
   (let ((rect (make-rect (make-point 0.0 0.0) (make-point 3.0 3.0))))
     (println (rect-perimeter rect))
-    (println (rect-area rect))
-    (newline)))
+    (println (rect-area rect))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -195,8 +194,7 @@
 
   (println (car-lambda (cons-lambda 1 2))) ; 1
   (println (cdr-lambda (cons-lambda 1 2))) ; 2
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -229,7 +227,7 @@
 
   (println (car-expt (cons-expt 4 5)))  ; 4
   (println (cdr-expt (cons-expt 4 5))) ; 5
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -266,7 +264,7 @@
   (println (church->scheme church-one))                          ; 1
   (println (church->scheme church-two))                          ; 2
   (println (church->scheme (church-add  church-one church-two))) ; 3
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -283,8 +281,7 @@
 
   (let ((interval (make-interval 2.8 3.2)))
     (println (interval-lb interval))
-    (println (interval-ub interval)))
-  (newline))
+    (println (interval-ub interval))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -306,8 +303,7 @@
 
   (let ((i1 (make-interval 2.8 3.2)) (i2 (make-interval 5.9 6.1)))
     (println (sub-interval i2 i1))
-    (println (sub-interval i1 i2)))
-  (newline))
+    (println (sub-interval i1 i2))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -362,8 +358,7 @@
 
   (let ((i1 (make-interval 2.8 3.2)) (i2 (make-interval 5.9 6.1)))
     (println (mul-interval i2 i1))
-    (println (div-interval i2 i1)))
-  (newline))
+    (println (div-interval i2 i1))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -422,8 +417,7 @@
     (println (mul-interval i3 i5))
     (println (mul-interval i5 i3))
     (println (mul-interval i4 i5))
-    (println (mul-interval i5 i4)))
-  (newline))
+    (println (mul-interval i5 i4))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -452,8 +446,7 @@
     (println interval)
     (println (interval-center interval))
     (println (interval-width interval))
-    (println (interval-percent interval)))
-  (newline))
+    (println (interval-percent interval))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -499,8 +492,7 @@
 
   (println (div-interval a-interval a-interval))  ; 1.0002000200020003 +/- 1.999800019997991%
   (println (div-interval a-interval b-interval)) ; 2.0004000400040005 +/- 1.999800019997991%
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -542,8 +534,7 @@
         (last-pair-iter (cdr iter-l) iter-l)))
     (last-pair-iter l l))
 
-  (println (last-pair '(1 2 3 4)))
-  (newline))
+  (println (last-pair '(1 2 3 4))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -561,8 +552,7 @@
         (list-reverse-iter (cdr iter-l) (cons (car iter-l) result))))
     (list-reverse-iter l '()))
 
-  (println (list-reverse (list 1 4 9 16 25)))
-  (newline))
+  (println (list-reverse (list 1 4 9 16 25))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -595,8 +585,7 @@
   ; Changing the order of coin-values does not affect the value of cc because the
   ; algorithm does not make any assumptions as to the order of coin values.
   (println (cc 11 us-coins))
-  (println (cc 11 uk-coins))
-  (newline))
+  (println (cc 11 uk-coins)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -620,8 +609,7 @@
     (same-parity-iter (cons x y) '()))
 
   (println (same-parity 2 4 5 6 7 9 11 12))
-  (println (same-parity 3 4 5 6 7 9 11 12))
-  (newline))
+  (println (same-parity 3 4 5 6 7 9 11 12)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -644,8 +632,7 @@
   (define (square-list items)
     (map square items))
 
-  (println (square-list '(1 2 3 4)))
-  (newline))
+  (println (square-list '(1 2 3 4))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -672,8 +659,7 @@
       (else (proc (car l))
             (foreach proc (cdr l)))))
 
-  (foreach println '(1 2 3 4))
-  (newline))
+  (foreach println '(1 2 3 4)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -729,9 +715,7 @@
 
   (println (caar '((7))))
 
-  (println (cadadr (cadadr (cadadr '(1 (2 (3 (4 (5 (6 7))))))))))
-
-  (newline))
+  (println (cadadr (cadadr (cadadr '(1 (2 (3 (4 (5 (6 7)))))))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -750,8 +734,7 @@
   (println (cons x y))   ; ((1 2 3) 4 5 6)
 
   (println (list x y))   ; ((1 2 3) (4 5 6))
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -772,9 +755,7 @@
                                       result)))))
     (list-reverse-iter l '()))
 
-  (println (deep-list-reverse (list (list 1 2) (list 3 4))))
-
-  (newline))
+  (println (deep-list-reverse (list (list 1 2) (list 3 4)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -792,9 +773,7 @@
       (else (append (fringe (car l))
                     (fringe (cdr l))))))
 
-  (println (fringe '(1 2 (3 4) 5 6)))
-
-  (newline))
+  (println (fringe '(1 2 (3 4) 5 6))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -888,9 +867,7 @@
   (println (branch-length (left-branch n)))
   (println (branch-structure (left-branch n)))
   (println (total-weight n))
-  (println (mobile-balanced? n))
-
-  (newline))
+  (println (mobile-balanced? n)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -920,9 +897,7 @@
                (square sub-tree)))
          tree))
 
-  (println (square-tree '((1 2) (3 4))))
-
-  (newline))
+  (println (square-tree '((1 2) (3 4)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -941,9 +916,7 @@
                (proc sub-tree)))
          tree))
 
-  (println (tree-map square '((1 2) (3 4))))
-
-  (newline))
+  (println (tree-map square '((1 2) (3 4)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -960,9 +933,7 @@
         (let ((rest (subsets (cdr s))))
           (append rest (map (lambda (x) (cons (car s) x)) rest)))))
 
-  (println (subsets '(1 2 3 4)))
-
-  (newline))
+  (println (subsets '(1 2 3 4))))
 
 ; It works because:
 ;  1) If the list is '() it returns '()
@@ -1002,8 +973,7 @@
 
   (println (map-acc square '(1 2 3 4 5 6)))
   (println (append-acc '(1 2 3) '(4 5 6)))
-  (println (length-acc '(1 2 3 4 5 6)))
-  (newline))
+  (println (length-acc '(1 2 3 4 5 6))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1021,8 +991,7 @@
                 0
                 coefficient-sequence))
 
-  (println (horner-eval 4 '(1 2 3 4)))
-  (newline))
+  (println (horner-eval 4 '(1 2 3 4))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1038,8 +1007,7 @@
   (define (count-leaves t)
     (accumulate (lambda (x y) (+ (length x) y)) 0 (map fringe t)))
 
-  (println (count-leaves '((1 2) (3 4) 5 6)))
-  (newline))
+  (println (count-leaves '((1 2) (3 4) 5 6))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1057,8 +1025,7 @@
         (cons (accumulate op init (map car seqs))
               (accumulate-n op init (map cdr seqs)))))
 
-  (println (accumulate-n + 0 (list (list 1 2 3) (list 4 5 6))))
-  (newline))
+  (println (accumulate-n + 0 (list (list 1 2 3) (list 4 5 6)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1089,8 +1056,7 @@
 
   (println (matrix-*-matrix '((1 2 3 4) (4 5 6 6) (6 7 8 9)) '((8 7) (6 5) (4 3) (2 1))))
   ; ((40 30) (98 77) (140 110))
-
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1109,7 +1075,7 @@
 
   ; op must be commutitive for fold-left and fold-riht to produce the same
   ; results for any sequence.
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1128,8 +1094,7 @@
     (foldl (lambda (x y) (cons y x)) '() sequence))
 
   (println (reverse-fold-right '(1 2 3 4)))
-  (println (reverse-fold-left '(1 2 3 4)))
-  (newline))
+  (println (reverse-fold-left '(1 2 3 4))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1186,8 +1151,7 @@
   (define (prime-sum-pairs n)
     (map make-pair-sum (filter prime-sum? (unique-pairs n))))
 
-  (println (prime-sum-pairs 10))
-  (newline))
+  (println (prime-sum-pairs 10)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1211,7 +1175,7 @@
 
   (println (s-sum-triples 10 12))
   ; ((5 4 3) (6 4 2) (6 5 1) (7 3 2) (7 4 1) (8 3 1) (9 2 1))
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1282,7 +1246,7 @@
               (queen-cols (- k 1))))))
     (queen-cols board-size))
 
-  ;(println (queens 8))
+  (println (queens 8))
   ; (((4 8) (2 7) (7 6) (3 5) (6 4) (8 3) (5 2) (1 1))
   ;  ((5 8) (2 7) (4 6) (7 5) (3 4) (8 3) (6 2) (1 1))
   ;  ((3 8) (5 7) (2 6) (8 5) (6 4) (4 3) (7 2) (1 1))
@@ -1375,7 +1339,7 @@
   ;  ((6 8) (4 7) (7 6) (1 5) (3 4) (5 3) (2 2) (8 1))
   ;  ((4 8) (7 7) (5 6) (2 5) (6 4) (1 3) (3 2) (8 1))
   ;  ((5 8) (7 7) (2 6) (6 5) (3 4) (1 3) (4 2) (8 1)))
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1706,9 +1670,7 @@
   (define (square-limit painter n)
     (let ((combine4 (square-of-four identity flip-horiz
                                     flip-vert rotate180)))
-      (combine4 (corner-split painter n))))
-
-  (newline))
+      (combine4 (corner-split painter n)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1726,7 +1688,7 @@
   (println (pair? (car '(a short list))))           ; #f
   (println (memq 'red '((red shoes) (blue socks)))) ; #f
   (println (memq 'red '(red shoes blue socks)))     ; (red shoes blue socks)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1748,8 +1710,7 @@
       (and (null? l1) (null? l2))))
 
   (println (equal-book? '(1 a 4.5) '(1 a 4.5)))
-  (println (equal-book? '(1 b 4.5) '(1 a 4.5)))
-  (newline))
+  (println (equal-book? '(1 b 4.5) '(1 a 4.5))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1847,8 +1808,7 @@
           (else
           (error "unknown expression type -- DERIV" ex))))
 
-  (println (deriv '(+ (** x 3) (+ x y)) 'x))
-  (newline))
+  (println (deriv '(+ (** x 3) (+ x y)) 'x)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2221,7 +2181,7 @@
   (define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
 
   (println (decode sample-message sample-tree)) ; (A D A B B C A)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2252,7 +2212,7 @@
         (else (error "bad symbol - ENCODE-SYMBOL" symbol)))))
 
   (println (encode '(A D A B B C A) sample-tree)) ; (0 1 1 0 0 1 0 1 0 1 1 1 0)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2289,7 +2249,7 @@
 
   (println (generate-huffman-tree '((a 4) (b 2) (c 1) (d 1))))
   ; ((leaf a 4) ((leaf b 2) ((leaf d 1) (leaf c 1) (d c) 2) (b d c) 4) (a b d c) 8)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2321,7 +2281,7 @@
   ; The huffman-encoded message needs 84 bits. Using fixed-length codes, each
   ; symbol of the 8 symbols will be encoded in 3 bits. We have 36 symbols in the
   ; message, so the minimum number of bits needed is 3 * 36 = 108.
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2526,7 +2486,7 @@
   ; Part (d):
   ;
   ; Just switch the arguments to the 'put' procedure too.
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2697,9 +2657,7 @@
     ((get 'equ? (list (type-tag n1) (type-tag n2))) (contents n1) (contents n2)))
 
   (println (equ? 1 2))
-  (println (equ? 1 1))
-
-  (newline))
+  (println (equ? 1 1)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2733,9 +2691,7 @@
   (println (=zero? 2))
   (println (=zero? 0))
   (println (=zero? (make-rat 3 6)))
-  (println (=zero? (make-rat 0 5)))
-
-  (newline))
+  (println (=zero? (make-rat 0 5))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2905,7 +2861,7 @@
   (println (raise 2)) ; (2 . 1)
   (println (raise (make-rat 1 2))) ; 0.5
   (println (raise 5.4)) ; (5.4 . 0)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2980,7 +2936,7 @@
   (println (apply-generic 'add 4 5.4)) ; 9.4
   (println (apply-generic 'add 2 (make-complex (make-rect 5 4)))) ; (complex rect 7.0 . 4)
   (println (apply-generic 'add (make-complex (make-rect 5 4)) (make-rat 2 5))) ; (complex rect 5.4 . 4)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3046,7 +3002,7 @@
   (println (add 1 (make-rat 2 1))) ; 3
   (println (add 4 5.0)) ; 9
   (println (add (make-complex (make-rect 5 0)) (make-rat 2 5))) ; 5.4
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3164,7 +3120,7 @@
 
   (println (mul (make-complex (make-rect (make-rat 3 4) 4)) (make-rat 2 5))) ; (complex pol 1.62788205960997 . 1.3854483767992)
   (println (add (make-complex (make-rect 3 4)) (make-rat 2 5))) ; (complex rect 3.4 . 4)
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3310,8 +3266,7 @@
   (println
     (=zero? (make-polynomial 'x (adjoin-term (make-term 3 0)
                                              (adjoin-term (make-term 2 0)
-                                                          (the-empty-termlist))))))
-  (newline))
+                                                          (the-empty-termlist)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3353,8 +3308,7 @@
                                                        (the-empty-termlist))))
          (make-polynomial 'x (adjoin-term (make-term 2 2)
                                           (adjoin-term (make-term 1 2)
-                                                       (the-empty-termlist))))))
-  (newline))
+                                                       (the-empty-termlist)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3493,8 +3447,7 @@
   (println
     (=zero? (make-polynomial 'x (adjoin-term (make-term 3 0)
                                              (adjoin-term (make-term 2 0)
-                                                          (the-empty-termlist))))))
-  (newline))
+                                                          (the-empty-termlist)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3671,8 +3624,7 @@
   (println
     (=zero? (make-polynomial 'x (adjoin-term (make-term 3 0)
                                              (adjoin-term (make-term 2 0)
-                                                          (the-empty-termlist 'dense))))))
-  (newline))
+                                                          (the-empty-termlist 'dense)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3740,9 +3692,7 @@
                                                        (the-empty-termlist))))
          (make-polynomial 'x (adjoin-term (make-term 1 2)
                                           (adjoin-term (make-term 0 2)
-                                                       (the-empty-termlist))))))
-
-  (newline))
+                                                       (the-empty-termlist)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3795,9 +3745,7 @@
   (define rf (make-rational p2 p1))
 
   (println rf)
-  (println (add rf rf))
-
-  (newline))
+  (println (add rf rf)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3836,9 +3784,7 @@
 
   (define p1 (make-polynomial 'x '((4 1) (3 -1) (2 -2) (1 2))))
   (define p2 (make-polynomial 'x '((3 1) (1 -1))))
-  (println (greatest-common-divisor p1 p2))
-
-  (newline))
+  (println (greatest-common-divisor p1 p2)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3863,9 +3809,7 @@
   (define q2 (mul p1 p3))
   (println q1)
   (println q2)
-  (println (greatest-common-divisor q1 q2))
-
-  (newline))
+  (println (greatest-common-divisor q1 q2)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3945,9 +3889,7 @@
 
   (install-gcd2)
 
-  (println (greatest-common-divisor q1 q2))
-
-  (newline))
+  (println (greatest-common-divisor q1 q2)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4030,6 +3972,4 @@
   (define rf1 (make-rational p1 p2))
   (define rf2 (make-rational p3 p4))
 
-  (println (add rf1 rf2))
-
-  (newline))
+  (println (add rf1 rf2)))

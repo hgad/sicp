@@ -5,6 +5,7 @@
     (if (not (zero? n)) (let () (newline) (newlines (sub1 n)))))
 
   (define (title str)
+    (newline)
     (display (string-append str ":")) (newline))
 
   (define (println obj)
@@ -40,7 +41,7 @@
                     ((< a b) b)
                     (else -1))
               (+ a 1)))                       ; 16
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -52,8 +53,7 @@
   (title "ex1.2")
 
   (println (/ (+ 5 4 (- 2 (- 3 (+ 6 (/ 4 5)))))
-              (* 3 (- 6 2) (- 2 7))))
-  (newline))
+              (* 3 (- 6 2) (- 2 7)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -73,8 +73,7 @@
       ((= (min a b c) b) (sos a c))
       ((= (min a b c) c) (sos a b))))
 
-  (println (sos-max-two 3 2 4))
-  (newline))
+  (println (sos-max-two 3 2 4)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -169,8 +168,7 @@
 
   ; as seen, sqrt-new works better for small numbers. For large numbers, the
   ; precision problem still persists, so their should be no improvement.
-
-  (newline))
+  )
 
 
 
@@ -197,8 +195,7 @@
 
     (cube-root-iter 1.0 10.0 x))
 
-  (println (cube-root 27.0))
-  (newline))
+  (println (cube-root 27.0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -274,8 +271,7 @@
         (f1-iter b c (+ c (* 2 b) (* 3 a)) (- n 1))))
     (f1-iter 0 1 2 n))
 
-  (println (f1-iterative 5))
-  (newline))
+  (println (f1-iterative 5)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -295,8 +291,7 @@
       (let ((pn-1 (pascal (- n 1))))
         (map + (cons 0 pn-1) (append pn-1 (list 0))))))
 
-  (println (pascal 10))
-  (newline))
+  (println (pascal 10)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -409,8 +404,7 @@
         (else (fast-expt-iter (* a b) b (- n 1)))))
     (fast-expt-iter 1 b n))
 
-  (println (fast-expt 2 5))
-  (newline))
+  (println (fast-expt 2 5)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -428,8 +422,7 @@
           ((even? b) (double (fast-times-recursive a (halve b))))
           (else (+ a (fast-times-recursive a (- b 1))))))
 
-  (println (fast-times-recursive 20.0 34.0))
-  (newline))
+  (println (fast-times-recursive 20.0 34.0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -449,8 +442,7 @@
         (else (fast-times-iter a (- b 1) (+ c a)))))
     (fast-times-iter a b 0))
 
-  (println (fast-times-iterative 20.0 34.0))
-  (newline))
+  (println (fast-times-iterative 20.0 34.0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -490,8 +482,7 @@
                             (- count 1)))))
     (fib-iter 1 0 0 1 n))
 
-  (println (fib 5))
-  (newline))
+  (println (fib 5)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -537,7 +528,7 @@
   (println (smallest-divisor 199))    ; 199
   (println (smallest-divisor 1999))   ; 1999
   (println (smallest-divisor 19999))  ; 7
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -592,7 +583,7 @@
   ;  10000000019 *** 93.0
   ;  10000000033 *** 92.0
   ;  10000000061 *** 92.0
-  (newline) (newline))
+  (newline))
 
 ; I pumped the numbers a bit because on modern machines, the example numbers all
 ; give 0 runtime. Numbers are close to what's expected. The results are
@@ -659,7 +650,7 @@
   ;  10000000019 *** 102.0
   ;  10000000033 *** 107.0
   ;  10000000061 *** .13
-  (newline) (newline))
+  (newline))
 
 ; It's clear from the large numbers that the runtime has decreased, but not
 ; exactly by a factor of 2 (more like 1.54). This is because halving the time
@@ -727,7 +718,7 @@
   ;  10000000019 *** 4.0000000000000036e-2
   ;  10000000033 *** 3.9999999999999925e-2
   ;  10000000061 *** 4.0000000000000036e-2
-  (newline) (newline))
+  (newline))
 
 ; The runtime depends mostly on the number of times to try fast-prime?. The
 ; numbers above are for a number of times equals to 300. The interesting thing
@@ -782,7 +773,7 @@
   (println (all-sub-n-pass-fermat-test? 2465))  ; #t
   (println (all-sub-n-pass-fermat-test? 2821))  ; #t
   (println (all-sub-n-pass-fermat-test? 6601))  ; #t
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -820,7 +811,7 @@
   (println (miller-rabin-test 2465)) ; #f
   (println (miller-rabin-test 2821)) ; #f
   (println (miller-rabin-test 6601)) ; #f
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -853,7 +844,7 @@
 
   (println (simpson cube 0.0 1 100))  ; 0.24999999999999992
   (println (simpson cube 0.0 1 1000)) ; 0.2500000000000003
-  (newline))
+  )
 
 ; The values are a lot more accurate than the method described earlier in the
 ; book.
@@ -874,8 +865,7 @@
           (iter (next a) (+ (term a) result))))
     (iter a 0))
 
-  (println (sum id 10 add1 20))
-  (newline))
+  (println (sum id 10 add1 20)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -917,8 +907,7 @@
           (iter (next a) (* (term a) result))))
     (iter a 1))
 
-  (println (product id 1 add1 10))
-  (newline))
+  (println (product id 1 add1 10)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -956,9 +945,7 @@
     (iter a null-value))
 
   (println (sum id 1 add1 10))
-  (println (product id 1 add1 10))
-
-  (newline))
+  (println (product id 1 add1 10)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -996,9 +983,7 @@
       (= (gcd a n) 1))
     (filtered-accumulate + 0 relatively-prime-to-n? id 1 add1 (sub1 n)))
 
-  (println (sum-relatively-prime 9))
-
-  (newline))
+  (println (sum-relatively-prime 9)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1037,8 +1022,7 @@
 
   (define phi (fixed-point phi-transformation 1.0))
 
-  (println phi)
-  (newline))
+  (println phi))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1070,8 +1054,7 @@
 
   ; With average damping, it takes a lot less steps.
   (newline)
-  (define x (fixed-point-display x-average-damping-transformation 2.0))
-  (newline))
+  (define x (fixed-point-display x-average-damping-transformation 2.0)))
 
 
 
@@ -1106,7 +1089,7 @@
     (cont-frac-iter n d (sub1 k) (/ (n k) (d k))))
 
   (println (cont-frac (lambda (i) 1.0) (lambda (i) 1.0) 11)) ; .6180555555555556
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1131,7 +1114,7 @@
     (+ 2 (cont-frac n-e d-e 10)))
 
   (println e) ; 2.71828171828172
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1149,7 +1132,7 @@
     (cont-frac n d k))
 
   (println (tan-cf (/ 3.14 4) 30)) ; 0.999203990105043
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1166,7 +1149,7 @@
     (lambda (x) (+ (cube x) (* a (square x)) (* b x) c)))
 
   (println ((cubic 3 4 5) 2)) ; 33
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1184,8 +1167,7 @@
 
   ; This is equivalent to ((double double) ((double double) add1)) which is
   ; equivalent to (quaruple (quadruple add1)) which adds 16.
-
-  (newline))
+  )
 
 
 
@@ -1202,7 +1184,7 @@
     (lambda (x) (f (g x))))
 
   (println ((compose square add1) 5)) ; 36
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1219,7 +1201,7 @@
     (if (= n 1) f (compose f (repeated f (sub1 n)))))
 
   (println ((repeated square 2) 5)) ; 625
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1241,7 +1223,7 @@
     (lambda (x) (((repeated smooth n) f) x)))
 
   (println ((nsmooth sin 2) (/ 3.1415 2))) ; 0.999999992260247
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1264,7 +1246,7 @@
                  1.0))
 
   (println (nth-root 4 16.0)) ; 2.0000000000022
-  (newline))
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1297,5 +1279,5 @@
 
   (println (sqrt-book 25.0)) ; 5.00000000005372
   (println (fixed-point (average-damp (lambda (y) (/ 25.0 y))) 1.0)) ; 5.00000000005372
-  (newline))
+  )
 
