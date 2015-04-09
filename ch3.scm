@@ -2038,8 +2038,12 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ex3.30                                                                     ;;
+;; ex3.31                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; If accept-action-procedure! does not run the given proceduce after adding it,
-; creating new circuitry will amount to only adding action procedures to wires
+; you will have to make sure you create the whole circuit before setting
+; signals on any input lines, because if you set signals on input lines before
+; creating some part of the circuit, the action procedures for these parts will
+; never be executed, because they will never have been added to the agenda.
+
