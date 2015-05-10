@@ -1,5 +1,6 @@
 (module debug (newlines title println id put get put-coercion get-coercion
-               reset-proc-table reset-coercion-table install-proc install-proc2)
+               reset-proc-table reset-coercion-table install-proc install-proc2
+               define-syntax-rule)
   (import scheme)
   (import (only chicken sub1))
 
@@ -2345,7 +2346,6 @@
 
 (module ex3.37 ()
   (import scheme debug ex3.33)
-  (import (only chicken error))
   (title "ex3.37")
 
   (define (c+ x y)
@@ -2472,6 +2472,18 @@
   (import (only chicken add1 sub1))
   (title "ex3.47")
 
+  (define (clear! cell)
+    #t
+  )
+
+  (define (test-and-set! cell)
+    #t
+  )
+
+  (define (make-mutex)
+    #t
+  )
+
   ; (a)
 
   (define (make-semaphore n)
@@ -2520,3 +2532,750 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; Skipping.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.50                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.50 (stream-cons stream-car stream-cdr the-empty-stream stream-null?
+                stream-enumerate-interval stream-ref stream-for-each stream-map
+                stream-filter display-stream display-line add-streams
+                scale-stream integers-starting-from naturals)
+  (import scheme debug)
+  (title "ex3.50")
+
+  (define-syntax-rule (stream-cons a b)
+    (cons a (delay b)))
+  (define (stream-car stream) (car stream))
+  (define (stream-cdr stream) (force (cdr stream)))
+
+  (define the-empty-stream '())
+  (define (stream-null? s) (null? s))
+
+  (define (stream-enumerate-interval low high)
+    (if (> low high)
+        the-empty-stream
+        (stream-cons
+         low
+         (stream-enumerate-interval (+ low 1) high))))
+
+  (define (stream-ref s n)
+    (if (= n 0)
+        (stream-car s)
+        (stream-ref (stream-cdr s) (- n 1))))
+
+  (define (stream-for-each proc s)
+    (if (stream-null? s)
+        'done
+        (begin (proc (stream-car s))
+               (stream-for-each proc (stream-cdr s)))))
+
+  (define (stream-map proc . argstreams)
+    (if (stream-null? (car argstreams))
+        the-empty-stream
+        (stream-cons
+         (apply proc (map stream-car argstreams))
+         (apply stream-map
+                (cons proc (map stream-cdr argstreams))))))
+
+  (define (stream-filter pred stream)
+    (cond ((stream-null? stream) the-empty-stream)
+          ((pred (stream-car stream))
+           (stream-cons (stream-car stream)
+                        (stream-filter pred
+                                       (stream-cdr stream))))
+          (else (stream-filter pred (stream-cdr stream)))))
+
+  (define (add-streams s1 s2)
+    (stream-map + s1 s2))
+
+  (define (scale-stream stream factor)
+    (stream-map (lambda (x) (* x factor)) stream))
+
+  (define (integers-starting-from n)
+    (stream-cons n (integers-starting-from (+ n 1))))
+
+  (define naturals (integers-starting-from 1))
+
+  (define (display-stream s)
+    (stream-for-each display-line s))
+
+  (define (display-line x)
+    (newline)
+    (display x))
+
+  (define result (stream-map + (stream-enumerate-interval 1 10)
+                               (stream-enumerate-interval 11 20)))
+
+  (println result)
+  (println (cons (stream-car result) (force (stream-cdr result))))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.51                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.51 ()
+  (import scheme debug ex3.50)
+  (title "ex3.51")
+
+  (define (show x)
+    (display-line x)
+    x)
+
+
+  (define x (stream-map show (stream-enumerate-interval 0 10)))
+  (stream-ref x 5)
+  (println "")
+  (stream-ref x 7)
+
+  ; The result is:
+  ;
+  ; 0
+  ; 1
+  ; 2
+  ; 3
+  ; 4
+  ; 5
+  ;
+  ; 6
+  ; 7
+  ;
+  ; Which indicates that the built-in delay operation is memoized.
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.52                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.52 ()
+  (import scheme debug ex3.50)
+  (title "ex3.52")
+
+  (define sum 0)
+  (println sum) ; 0
+
+  (define (accum x)
+    (set! sum (+ x sum))
+    sum)
+  (println sum) ; 0
+
+  (define seq (stream-map accum (stream-enumerate-interval 1 20)))
+  ; The unevaluated seq is (1 3 6 10 15 21 28 36 45 55 66 78 91 105 120 136 153
+  ;                         171 190 210)
+  (println sum) ; 1
+
+  (define y (stream-filter even? seq))
+  ; The unevaluated y is (6 10 28 36 66 78 120 136 190 210)
+  (println sum) ; 6
+
+  (define z (stream-filter (lambda (x) (= (remainder x 5) 0))
+                           seq))
+  ; The unevaluated z is (10 15 45 55 105 120 190 210)
+  (println sum) ; 10
+
+  (stream-ref y 7)
+  ; This evaluates until index 7 of y (starting at 0)
+  (println sum) ; 136
+
+  (display-stream z)
+  ; This evaluates all of z
+  (println "\n")
+  (println sum) ; 210
+
+  ; If delay was not memoized, every stream function call will have to
+  ; re-evaluate the full sequence and would thus contribute more to 'sum'.
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.53                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.53 ()
+  (import scheme debug ex3.50)
+  (title "ex3.53")
+
+  (define s (stream-cons 1 (add-streams s s)))
+  ; (1 2 4 8 16 ...)
+
+  (println (stream-ref s 8)) ; 256
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.54                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.54 (mul-streams)
+  (import scheme debug ex3.50)
+  (title "ex3.54")
+
+  (define (mul-streams s1 s2)
+    (stream-map * s1 s2))
+
+  (define factorials (stream-cons 1 (mul-streams factorials naturals)))
+
+  (println (stream-ref factorials 6)) ; 720
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.55                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.55 (partial-sums)
+  (import scheme debug ex3.50 ex3.54)
+  (title "ex3.55")
+
+  (define (partial-sums s)
+    (define x (stream-cons 0 (add-streams x s)))
+    (stream-cdr x))
+
+  (println (stream-ref (partial-sums naturals) 0)) ; 1
+  (println (stream-ref (partial-sums naturals) 1)) ; 3
+  (println (stream-ref (partial-sums naturals) 2)) ; 6
+  (println (stream-ref (partial-sums naturals) 3)) ; 10
+  (println (stream-ref (partial-sums naturals) 4)) ; 15
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.56                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.56 ()
+  (import scheme debug ex3.50)
+  (title "ex3.56")
+
+  (define (merge s1 s2)
+    (cond ((stream-null? s1) s2)
+          ((stream-null? s2) s1)
+          (else
+           (let ((s1car (stream-car s1))
+                 (s2car (stream-car s2)))
+             (cond ((< s1car s2car)
+                    (stream-cons s1car (merge (stream-cdr s1) s2)))
+                   ((> s1car s2car)
+                    (stream-cons s2car (merge s1 (stream-cdr s2))))
+                   (else
+                    (stream-cons s1car
+                                 (merge (stream-cdr s1)
+                                        (stream-cdr s2)))))))))
+
+  (define s (stream-cons 1 (merge (scale-stream s 2)
+                                  (merge (scale-stream s 3)
+                                         (scale-stream s 5)))))
+
+  (println (stream-ref s 0))
+  (println (stream-ref s 1))
+  (println (stream-ref s 2))
+  (println (stream-ref s 3))
+  (println (stream-ref s 4))
+  (println (stream-ref s 5))
+  (println (stream-ref s 6))
+  (println (stream-ref s 7))
+  (println (stream-ref s 8))
+  (println (stream-ref s 9))
+  (println (stream-ref s 10))
+  (println (stream-ref s 11))
+  (println (stream-ref s 12))
+  (println (stream-ref s 13))
+  (println (stream-ref s 14))
+  (println (stream-ref s 15))
+  (println (stream-ref s 16))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.57                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Number of additions = n - 1. If delay was not memoized, the number of
+; additions a(n) = a(n - 1) + a(n - 2) + 1 = fib(n) + 1.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.58 (incomplete)                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.58 ()
+  (import scheme debug ex3.50)
+  (title "ex3.58")
+
+  (define (expand num den radix)
+    (stream-cons
+      (quotient (* num radix) den)
+      (expand (remainder (* num radix) den) den radix)))
+
+  (println (stream-ref (expand 1 7 10) 0))
+  (println (stream-ref (expand 1 7 10) 1))
+  (println (stream-ref (expand 1 7 10) 2))
+  (println (stream-ref (expand 1 7 10) 3))
+  (println (stream-ref (expand 1 7 10) 4))
+  (println (stream-ref (expand 1 7 10) 5))
+  (println (stream-ref (expand 1 7 10) 6))
+
+  (println "")
+
+  (println (stream-ref (expand 3 8 10) 0))
+  (println (stream-ref (expand 3 8 10) 1))
+  (println (stream-ref (expand 3 8 10) 2))
+  (println (stream-ref (expand 3 8 10) 3))
+  (println (stream-ref (expand 3 8 10) 4))
+  (println (stream-ref (expand 3 8 10) 5))
+  (println (stream-ref (expand 3 8 10) 6))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.59                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.59 (cosine-series sine-series)
+  (import scheme debug ex3.50 ex3.54)
+  (title "ex3.59")
+
+  ; (a)
+
+  (define (div-streams s1 s2)
+    (stream-map / s1 s2))
+
+  (define (integrate-series s)
+    (div-streams s naturals))
+
+  (define test-stream (mul-streams naturals naturals))
+  (println (stream-ref (integrate-series test-stream) 0)) ; 1
+  (println (stream-ref (integrate-series test-stream) 1)) ; 2
+  (println (stream-ref (integrate-series test-stream) 2)) ; 3
+  (println (stream-ref (integrate-series test-stream) 3)) ; 4
+
+  ; (b)
+
+  (define cosine-series
+    (stream-cons 1 (scale-stream (integrate-series sine-series) -1)))
+  (define sine-series
+    (stream-cons 0 (integrate-series cosine-series)))
+
+  (println "")
+  (println (stream-ref cosine-series 0)) ; 1
+  (println (stream-ref cosine-series 1)) ; 0
+  (println (stream-ref cosine-series 2)) ; -0.5
+  (println (stream-ref cosine-series 3)) ; 0
+  (println (stream-ref cosine-series 4)) ; 0.041667
+  (println (stream-ref cosine-series 5)) ; 0
+
+  (println "")
+  (println (stream-ref sine-series 0)) ; 0
+  (println (stream-ref sine-series 1)) ; 1
+  (println (stream-ref sine-series 2)) ; 0
+  (println (stream-ref sine-series 3)) ; -0.16667
+  (println (stream-ref sine-series 4)) ; 0
+  (println (stream-ref sine-series 5)) ; 0.008333
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.60                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.60 (mul-series)
+  (import scheme debug ex3.50 ex3.54 ex3.59)
+  (title "ex3.60")
+
+  (define (mul-series s1 s2)
+    (stream-cons (* (stream-car s1) (stream-car s2))
+                 (add-streams (scale-stream (stream-cdr s2) (stream-car s1))
+                 (add-streams (scale-stream (stream-cdr s1) (stream-car s2))
+                              (stream-cons 0 (mul-series (stream-cdr s1)
+                                                         (stream-cdr s2)))))))
+
+  (define two-powers (stream-cons 1 (add-streams two-powers two-powers)))
+
+  (define (one n)
+    (define one-stream (mul-streams
+                        (add-streams (mul-series cosine-series cosine-series)
+                                      (mul-series sine-series sine-series))
+                        two-powers))
+    (if (< n 0)
+        0
+        (+ (stream-ref one-stream n) (one (- n 1)))))
+
+  (println (one 20)) ; 1.0
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.61                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.61 (invert-unit-series)
+  (import scheme debug ex3.50 ex3.59 ex3.60)
+  (title "ex3.61")
+
+  (define (invert-unit-series s)
+    (define x (stream-cons (stream-car s)
+                           (scale-stream (mul-series (stream-cdr s) x) -1)))
+    x)
+
+  (define cosine-inverse (invert-unit-series cosine-series))
+
+  (println (stream-ref cosine-inverse 0))
+  (println (stream-ref cosine-inverse 1))
+  (println (stream-ref cosine-inverse 2))
+  (println (stream-ref cosine-inverse 3))
+  (println (stream-ref cosine-inverse 4))
+  (println (stream-ref cosine-inverse 5))
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.62                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.62 ()
+  (import scheme debug ex3.50 ex3.59 ex3.60 ex3.61)
+  (import (only chicken error))
+  (title "ex3.62")
+
+  (define (div-series s1 s2)
+    (let ((c (stream-car s2)))
+      (if (zero? c)
+          (error "Zero denominator constant term -- DIV-SERIES")
+          (let ((c-inverse (/ 1 c)))
+            (scale-stream
+              (mul-series s1 (invert-unit-series (scale-stream s2 c-inverse)))
+              c-inverse)))))
+
+  (define tan-series (div-series sine-series cosine-series))
+
+  (println (stream-ref tan-series 0)) ; 0
+  (println (stream-ref tan-series 1)) ; 1
+  (println (stream-ref tan-series 2)) ; 0.0
+  (println (stream-ref tan-series 3)) ; 0.33333
+  (println (stream-ref tan-series 4)) ; 0.0
+  (println (stream-ref tan-series 5)) ; 0.1333333
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.63 (incomplete)                                                        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Every force in this new implementation will have to execute (sqrt-stream x)
+; because it's a function call not just a variable, effectively disabling
+; memorization.
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.64                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.64 ()
+  (import scheme debug ex3.50)
+  (title "ex3.64")
+
+  (define (stream-cadr s)
+    (stream-car (stream-cdr s)))
+
+  (define (stream-limit s t)
+    (let ((elem1 (stream-car s))
+          (elem2 (stream-cadr s)))
+      (if (< (abs (- elem1 elem2)) t)
+        elem2
+        (stream-limit (stream-cdr s) t))))
+
+  (define (average x y)
+    (/ (+ x y) 2))
+
+  (define (sqrt-improve guess x)
+    (average guess (/ x guess)))
+
+  (define (sqrt-stream x)
+    (define guesses
+      (stream-cons 1.0
+                   (stream-map (lambda (guess)
+                                 (sqrt-improve guess x))
+                               guesses)))
+    guesses)
+
+  (define (sqrt-tolerance x tolerance)
+    (stream-limit (sqrt-stream x) tolerance))
+
+  (println (sqrt-tolerance 2 0.01)) ; 1.41421568627451
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.65                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.65 ()
+  (import scheme debug ex3.50 ex3.55)
+  (title "ex3.65")
+
+  (define (square x) (* x x))
+
+  (define (ln-2-summands n)
+    (stream-cons (/ 1.0 n)
+                 (stream-map - (ln-2-summands (+ n 1)))))
+
+  (define ln-2-stream1
+    (partial-sums (ln-2-summands 1)))
+
+  (println (stream-ref ln-2-stream1 0))
+  (println (stream-ref ln-2-stream1 1))
+  (println (stream-ref ln-2-stream1 2))
+  (println (stream-ref ln-2-stream1 3))
+  (println (stream-ref ln-2-stream1 4))
+  (println (stream-ref ln-2-stream1 5))
+  (println (stream-ref ln-2-stream1 6))
+
+  (define (euler-transform s)
+    (let ((s0 (stream-ref s 0))           ; Sn-1
+          (s1 (stream-ref s 1))           ; Sn
+          (s2 (stream-ref s 2)))          ; Sn+1
+      (stream-cons (- s2 (/ (square (- s2 s1))
+                            (+ s0 (* -2 s1) s2)))
+                   (euler-transform (stream-cdr s)))))
+
+  (define ln-2-stream2 (euler-transform ln-2-stream1))
+
+  (println "")
+  (println (stream-ref ln-2-stream2 0))
+  (println (stream-ref ln-2-stream2 1))
+  (println (stream-ref ln-2-stream2 2))
+  (println (stream-ref ln-2-stream2 3))
+  (println (stream-ref ln-2-stream2 4))
+  (println (stream-ref ln-2-stream2 5))
+  (println (stream-ref ln-2-stream2 6))
+
+  (define (make-tableau transform s)
+    (stream-cons s
+                 (make-tableau transform
+                               (transform s))))
+
+  (define (accelerated-sequence transform s)
+    (stream-map stream-car
+                (make-tableau transform s)))
+
+  (define ln-2-stream3 (accelerated-sequence euler-transform ln-2-stream1))
+
+  (println "")
+  (println (stream-ref ln-2-stream3 0))
+  (println (stream-ref ln-2-stream3 1))
+  (println (stream-ref ln-2-stream3 2))
+  (println (stream-ref ln-2-stream3 3))
+  (println (stream-ref ln-2-stream3 4))
+  (println (stream-ref ln-2-stream3 5))
+  (println (stream-ref ln-2-stream3 6))
+
+  ; ln-2-stream3 converges faster than ln-2-stream2 faster than ln-2-stream1
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.66                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.66 ()
+  (import scheme debug ex3.50)
+  (title "ex3.66")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.67                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.67 ()
+  (import scheme debug ex3.50)
+  (title "ex3.67")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.68                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.68 ()
+  (import scheme debug ex3.50)
+  (title "ex3.68")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.69                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.69 ()
+  (import scheme debug ex3.50)
+  (title "ex3.69")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.70                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.70 ()
+  (import scheme debug ex3.50)
+  (title "ex3.70")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.71                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.71 ()
+  (import scheme debug ex3.50)
+  (title "ex3.71")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.72                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.72 ()
+  (import scheme debug ex3.50)
+  (title "ex3.72")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.73                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.73 ()
+  (import scheme debug ex3.50)
+  (title "ex3.73")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.74                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.74 ()
+  (import scheme debug ex3.50)
+  (title "ex3.74")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.75                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.75 ()
+  (import scheme debug ex3.50)
+  (title "ex3.75")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.76                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.76 ()
+  (import scheme debug ex3.50)
+  (title "ex3.76")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.77                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.77 ()
+  (import scheme debug ex3.50)
+  (title "ex3.77")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.78                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.78 ()
+  (import scheme debug ex3.50)
+  (title "ex3.78")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.79                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.79 ()
+  (import scheme debug ex3.50)
+  (title "ex3.79")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.80                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.80 ()
+  (import scheme debug ex3.50)
+  (title "ex3.80")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.81                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.81 ()
+  (import scheme debug ex3.50)
+  (title "ex3.81")
+
+  (newline))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ex3.82                                                                     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(module ex3.82 ()
+  (import scheme debug ex3.50)
+  (title "ex3.82")
+
+  (newline))
+
+
+
