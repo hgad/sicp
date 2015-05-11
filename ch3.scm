@@ -3095,9 +3095,43 @@
 ;; ex3.66                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex3.66 ()
+(module ex3.66 (interleave)
   (import scheme debug ex3.50)
   (title "ex3.66")
+
+  (define (interleave s1 s2)
+    (if (stream-null? s1)
+        s2
+        (stream-cons (stream-car s1)
+                     (interleave s2 (stream-cdr s1)))))
+
+  (define (pairs s t)
+    (stream-cons
+      (list (stream-car s) (stream-car t))
+      (interleave
+        (stream-map (lambda (x) (list (stream-car s) x))
+                    (stream-cdr t))
+        (pairs (stream-cdr s) (stream-cdr t)))))
+
+  (define nat-pairs (pairs naturals naturals))
+
+  (println (stream-ref nat-pairs 0))
+  (println (stream-ref nat-pairs 1))
+  (println (stream-ref nat-pairs 2))
+  (println (stream-ref nat-pairs 3))
+  (println (stream-ref nat-pairs 4))
+  (println (stream-ref nat-pairs 5))
+  (println (stream-ref nat-pairs 6))
+  (println (stream-ref nat-pairs 7))
+  (println (stream-ref nat-pairs 8))
+
+  ; Pairs show up in the stream by interleaving every column with the first row.
+  ; When a column is up, interleaving moves on to the next column and so on.
+  ; (1, 100) would be preceded by 197 pairs (2*(n-2)+1).
+  ; (99, 100) would be preceded by 100*99/2 = 4950 (size of triangle above and
+  ; to the left of that pair) + (4950 - 100) (number of pairs in the first row
+  ; after that pair) = 9800 pairs.
+  ; (100, 100) would be preceded by 2*5000 - 100 = 9900 pairs.
 
   (newline))
 
@@ -3110,6 +3144,27 @@
   (import scheme debug ex3.50)
   (title "ex3.67")
 
+  (define (pairs s t)
+    (define (iter index sum-indexes)
+      (stream-cons
+        (list (stream-ref s index) (stream-ref t (- sum-indexes index)))
+        (iter
+          (if (= index sum-indexes) 0 (+ index 1))
+          (if (= index sum-indexes) (+ sum-indexes 1) sum-indexes))))
+    (iter 0 0))
+
+  (define nat-pairs (pairs naturals naturals))
+
+  (println (stream-ref nat-pairs 0))
+  (println (stream-ref nat-pairs 1))
+  (println (stream-ref nat-pairs 2))
+  (println (stream-ref nat-pairs 3))
+  (println (stream-ref nat-pairs 4))
+  (println (stream-ref nat-pairs 5))
+  (println (stream-ref nat-pairs 6))
+  (println (stream-ref nat-pairs 7))
+  (println (stream-ref nat-pairs 8))
+
   (newline))
 
 
@@ -3118,8 +3173,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex3.68 ()
-  (import scheme debug ex3.50)
+  (import scheme debug ex3.50 ex3.66)
   (title "ex3.68")
+
+  (define (pairs s t)
+    (interleave
+      (stream-map (lambda (x) (list (stream-car s) x))
+                  t)
+      (pairs (stream-cdr s) (stream-cdr t))))
+
+  ; this implementation will loop forever trying to compute the first pair.
 
   (newline))
 
