@@ -3095,7 +3095,7 @@
 ;; ex3.66                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex3.66 (interleave)
+(module ex3.66 (pairs interleave)
   (import scheme debug ex3.50)
   (title "ex3.66")
 
@@ -3173,7 +3173,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex3.68 ()
-  (import scheme debug ex3.50 ex3.66)
+  (import scheme debug ex3.50)
+  (import (only ex3.66 interleave))
   (title "ex3.68")
 
   (define (pairs s t)
@@ -3192,8 +3193,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex3.69 ()
-  (import scheme debug ex3.50)
+  (import scheme debug ex3.50 ex3.66)
   (title "ex3.69")
+
+  (define (triples s t u)
+    (stream-cons
+      (list (stream-car s) (stream-car t) (stream-car u))
+      (interleave
+        (stream-map (lambda (x) (cons (stream-car s) x))
+                    (pairs (stream-cdr t) (stream-cdr u)))
+        (triples (stream-cdr s) (stream-cdr t) (stream-cdr u)))))
+
+  (define (square x) (* x x))
+
+  (define pythagorean-triples
+    (stream-filter (lambda (x) (eq? (+ (square (car x)) (square (cadr x)))
+                                    (square (caddr x))))
+                   (triples naturals naturals naturals)))
+
+  (println (stream-ref pythagorean-triples 0))
+  (println (stream-ref pythagorean-triples 1))
 
   (newline))
 
@@ -3202,9 +3221,67 @@
 ;; ex3.70                                                                     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(module ex3.70 ()
+(module ex3.70 (weighted-pairs)
   (import scheme debug ex3.50)
   (title "ex3.70")
+
+  (define (merge-weighted s1 s2 weight)
+    (cond ((stream-null? s1) s2)
+          ((stream-null? s2) s1)
+          (else
+           (let ((s1car (stream-car s1))
+                 (s2car (stream-car s2)))
+             (cond ((< (weight s1car) (weight s2car))
+                    (stream-cons s1car (merge-weighted (stream-cdr s1) s2 weight)))
+                   ((> (weight s1car) (weight s2car))
+                    (stream-cons s2car (merge-weighted s1 (stream-cdr s2) weight)))
+                   (else
+                    (stream-cons s1car
+                                 (merge-weighted (stream-cdr s1)
+                                                 (stream-cdr s2) weight))))))))
+
+  (define (weighted-pairs s t weight)
+    (stream-cons
+      (list (stream-car s) (stream-car t))
+      (merge-weighted
+        (stream-map (lambda (x) (list (stream-car s) x))
+                    (stream-cdr t))
+        (weighted-pairs (stream-cdr s) (stream-cdr t) weight) weight)))
+
+  ; (a)
+
+  (define (order1-weight p)
+    (+ (car p) (cadr p)))
+
+  (define order1 (weighted-pairs naturals naturals order1-weight))
+
+  (println (stream-ref order1 0))
+  (println (stream-ref order1 1))
+  (println (stream-ref order1 2))
+  (println (stream-ref order1 3))
+  (println (stream-ref order1 4))
+  (println (stream-ref order1 5))
+  (println (stream-ref order1 6))
+  (println (stream-ref order1 7))
+  (println (stream-ref order1 8))
+
+  ; (b)
+
+  (define (order2-weight p)
+    (+ (* 2 (car p)) (* 3 (cadr p)) (* 5 (car p) (cadr p))))
+
+  (define order2 (weighted-pairs naturals naturals order2-weight))
+
+  (newline)
+  (println (stream-ref order2 0))
+  (println (stream-ref order2 1))
+  (println (stream-ref order2 2))
+  (println (stream-ref order2 3))
+  (println (stream-ref order2 4))
+  (println (stream-ref order2 5))
+  (println (stream-ref order2 6))
+  (println (stream-ref order2 7))
+  (println (stream-ref order2 8))
 
   (newline))
 
@@ -3214,8 +3291,45 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module ex3.71 ()
-  (import scheme debug ex3.50)
+  (import scheme debug ex3.50 ex3.70)
   (title "ex3.71")
+
+  (define (cube x)
+    (* x x x))
+
+  (define (element-of-set? x set)
+    (cond ((null? set) #f)
+          ((equal? x (car set)) #t)
+          (else (element-of-set? x (cdr set)))))
+
+  (define (adjoin-set x set) (cons x set))
+
+  (define (ramanujan-weight p)
+    (+ (cube (car p)) (cube (cadr p))))
+
+
+  (define ramanujan-weights
+    (stream-map ramanujan-weight
+                (weighted-pairs naturals naturals ramanujan-weight)))
+
+  (define (ramanujan-stream set-of-weights weights)
+    (let ((current-weight (stream-car weights)))
+      (cond ((stream-null? weights) the-empty-stream)
+            ((element-of-set? current-weight set-of-weights)
+              (stream-cons current-weight
+                            (ramanujan-stream set-of-weights
+                                          (stream-cdr weights))))
+            (else (ramanujan-stream (adjoin-set current-weight set-of-weights)
+                                    (stream-cdr weights))))))
+
+  (define ramanujan-numbers (ramanujan-stream '() ramanujan-weights))
+
+  (println (stream-ref ramanujan-numbers 0))
+  (println (stream-ref ramanujan-numbers 1))
+  (println (stream-ref ramanujan-numbers 2))
+  (println (stream-ref ramanujan-numbers 3))
+  (println (stream-ref ramanujan-numbers 4))
+  (println (stream-ref ramanujan-numbers 5))
 
   (newline))
 
